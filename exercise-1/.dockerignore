@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Go
+*.test
+*.out
+coverage.txt
+vendor/
+
+# 建構產物
+counter-service
+/bin
+/dist
+
+# 開發工具
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 文檔
+*.md
+docs/
+
+# 測試
+test/
+scripts/
+*_test.go
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# macOS
+.DS_Store

@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Redis - 主要快取層
+  redis:
+    image: redis:7-alpine
+    container_name: counter-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # PostgreSQL - 持久化層
+  postgres:
+    image: postgres:15-alpine
+    container_name: counter-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: counter_service
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/schema:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Redis Commander - Redis 管理介面（開發用）
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: counter-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:
+  postgres-data:

@@ -1,0 +1,38 @@
+# 服務配置
+server:
+  port: 8080
+  read_timeout: 5s
+  write_timeout: 10s
+
+# Redis 配置
+redis:
+  addr: localhost:6379
+  password: ""
+  db: 0
+  pool_size: 100
+  min_idle_conns: 10
+  max_retries: 3
+  read_timeout: 3s
+  write_timeout: 3s
+
+# PostgreSQL 配置
+postgres:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: counter_service
+  max_conns: 25
+  min_conns: 5
+
+# 計數器配置
+counter:
+  batch_size: 1000
+  flush_interval: 1s
+  enable_fallback: true
+  fallback_threshold: 3
+
+# 日誌配置
+log:
+  level: info  # debug, info, warn, error
+  format: text # text, json

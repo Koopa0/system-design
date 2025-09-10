@@ -1,0 +1,14 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "sql/queries"
+    schema: "internal/migrations/000001_init_schema.up.sql"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/sqlc"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true
