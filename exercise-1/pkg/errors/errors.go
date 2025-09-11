@@ -34,7 +34,6 @@ type AppError struct {
 	Err     error  `json:"-"`
 }
 
-// Error 實現 error 介面
 func (e *AppError) Error() string {
 	if e.Err != nil {
 		return fmt.Sprintf("[%s] %s: %v", e.Code, e.Message, e.Err)
@@ -83,25 +82,25 @@ func (e *AppError) WithDetails(details string) *AppError {
 var (
 	// ErrCounterNotFound 計數器未找到
 	ErrCounterNotFound = New(ErrCodeNotFound, "counter not found")
-	
+
 	// ErrCounterAlreadyExists 計數器已存在
 	ErrCounterAlreadyExists = New(ErrCodeAlreadyExists, "counter already exists")
-	
+
 	// ErrInvalidCounterName 無效的計數器名稱
 	ErrInvalidCounterName = New(ErrCodeInvalidInput, "invalid counter name")
-	
+
 	// ErrQuotaExceeded 配額超限
 	ErrQuotaExceeded = New(ErrCodeQuotaExceeded, "counter quota exceeded")
-	
+
 	// ErrSystemCounterImmutable 系統計數器不可變更
 	ErrSystemCounterImmutable = New(ErrCodeInvalidInput, "system counter cannot be deleted")
-	
+
 	// ErrServiceDegraded 服務降級
 	ErrServiceDegraded = New(ErrCodeDegraded, "service is running in degraded mode")
-	
+
 	// ErrRedisUnavailable Redis 不可用
 	ErrRedisUnavailable = New(ErrCodeUnavailable, "redis service unavailable")
-	
+
 	// ErrDatabaseUnavailable 資料庫不可用
 	ErrDatabaseUnavailable = New(ErrCodeUnavailable, "database service unavailable")
 )

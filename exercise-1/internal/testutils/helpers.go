@@ -51,7 +51,7 @@ func DefaultTestConfig() *internal.Config {
 //
 // 在分散式系統測試中，有時需要等待資料同步。
 // 這個函數會重試檢查直到條件滿足或超時。
-func AssertEventuallyEqual(t testing.TB, expected interface{}, actualFunc func() interface{}, timeout time.Duration, message string) {
+func AssertEventuallyEqual(t testing.TB, expected any, actualFunc func() any, timeout time.Duration, message string) {
 	t.Helper()
 
 	deadline := time.Now().Add(timeout)
@@ -69,7 +69,7 @@ func AssertEventuallyEqual(t testing.TB, expected interface{}, actualFunc func()
 }
 
 // MakeHTTPRequest 執行 HTTP 請求的輔助函數
-func MakeHTTPRequest(t testing.TB, handler http.Handler, method, path string, body interface{}) *httptest.ResponseRecorder {
+func MakeHTTPRequest(t testing.TB, handler http.Handler, method, path string, body any) *httptest.ResponseRecorder {
 	t.Helper()
 
 	var bodyReader io.Reader
@@ -95,9 +95,10 @@ func MakeHTTPRequest(t testing.TB, handler http.Handler, method, path string, bo
 }
 
 // ParseJSONResponse 解析 JSON 響應
-func ParseJSONResponse(t testing.TB, recorder *httptest.ResponseRecorder, target interface{}) {
+func ParseJSONResponse(t testing.TB, recorder *httptest.ResponseRecorder, target any) {
 	t.Helper()
 
+	// 解析 JSON 響應
 	err := json.NewDecoder(recorder.Body).Decode(target)
 	require.NoError(t, err, "failed to parse JSON response")
 }
@@ -182,13 +183,13 @@ func AssertCounterValue(t testing.TB, counter *internal.Counter, name string, ex
 }
 
 // AssertNoError 斷言沒有錯誤
-func AssertNoError(t testing.TB, err error, msgAndArgs ...interface{}) {
+func AssertNoError(t testing.TB, err error, msgAndArgs ...any) {
 	t.Helper()
 	require.NoError(t, err, msgAndArgs...)
 }
 
 // AssertError 斷言有錯誤
-func AssertError(t testing.TB, err error, msgAndArgs ...interface{}) {
+func AssertError(t testing.TB, err error, msgAndArgs ...any) {
 	t.Helper()
 	require.Error(t, err, msgAndArgs...)
 }

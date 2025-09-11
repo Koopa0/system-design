@@ -171,7 +171,7 @@ func runMigrations(pool *pgxpool.Pool) error {
 	ctx := context.Background()
 
 	// 讀取 SQL 檔案
-	schema, err := os.ReadFile("sql/schema/001_counters.sql")
+	schema, err := os.ReadFile("internal/migrations/migrations/000001_init_schema.up.sql")
 	if err != nil {
 		return fmt.Errorf("read schema file: %w", err)
 	}

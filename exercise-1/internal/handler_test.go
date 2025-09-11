@@ -73,9 +73,9 @@ func TestHandler_Increment(t *testing.T) {
 			expectedError:  "counter name required",
 		},
 		{
-			name:           "increment existing counter",
-			counterName:    "existing_counter",
-			requestBody:    `{"value": 10}`,
+			name:        "increment existing counter",
+			counterName: "existing_counter",
+			requestBody: `{"value": 10}`,
 			setupFunc: func(t *testing.T, env *testutils.TestEnvironment) {
 				ctx := context.Background()
 				err := env.RedisClient.Set(ctx, "counter:existing_counter", 20, 0).Err()
@@ -119,7 +119,7 @@ func TestHandler_Increment(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, recorder.Code)
 
 			// 解析響應
-			var response map[string]interface{}
+			var response map[string]any
 			err := json.NewDecoder(recorder.Body).Decode(&response)
 			require.NoError(t, err)
 
@@ -213,7 +213,7 @@ func TestHandler_Decrement(t *testing.T) {
 			// 驗證
 			assert.Equal(t, tt.expectedStatus, recorder.Code)
 
-			var response map[string]interface{}
+			var response map[string]any
 			err := json.NewDecoder(recorder.Body).Decode(&response)
 			require.NoError(t, err)
 
@@ -221,7 +221,7 @@ func TestHandler_Decrement(t *testing.T) {
 			success, ok := response["success"].(bool)
 			assert.True(t, ok, "response should have success field")
 			assert.True(t, success)
-			
+
 			// 檢查 current_value 欄位 (只在成功時檢查)
 			if success {
 				currentValue, ok := response["current_value"].(float64)
@@ -260,7 +260,7 @@ func TestHandler_Get(t *testing.T) {
 		// 驗證
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err = json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
@@ -278,7 +278,7 @@ func TestHandler_Get(t *testing.T) {
 		// 新計數器應返回 0 而不是 404
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
@@ -330,17 +330,17 @@ func TestHandler_GetMultiple(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
-		counters := response["counters"].([]interface{})
+		counters := response["counters"].([]any)
 		assert.Len(t, counters, 3)
 
 		// 驗證值
 		values := make(map[string]float64)
 		for _, c := range counters {
-			counter := c.(map[string]interface{})
+			counter := c.(map[string]any)
 			name := counter["name"].(string)
 			value := counter["value"].(float64)
 			values[name] = value
@@ -359,17 +359,17 @@ func TestHandler_GetMultiple(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
-		counters := response["counters"].([]interface{})
+		counters := response["counters"].([]any)
 		assert.Len(t, counters, 3)
 
 		// 驗證非存在的計數器返回 0
 		values := make(map[string]float64)
 		for _, c := range counters {
-			counter := c.(map[string]interface{})
+			counter := c.(map[string]any)
 			name := counter["name"].(string)
 			value := counter["value"].(float64)
 			values[name] = value
@@ -386,7 +386,7 @@ func TestHandler_GetMultiple(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
@@ -401,7 +401,7 @@ func TestHandler_GetMultiple(t *testing.T) {
 			names[i] = fmt.Sprintf("counter%d", i)
 		}
 
-		req := httptest.NewRequest(http.MethodGet, 
+		req := httptest.NewRequest(http.MethodGet,
 			fmt.Sprintf("/api/v1/counters?names=%s", strings.Join(names, ",")), nil)
 		recorder := httptest.NewRecorder()
 
@@ -409,7 +409,7 @@ func TestHandler_GetMultiple(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
@@ -438,7 +438,7 @@ func TestHandler_Reset(t *testing.T) {
 
 		// 創建請求
 		body := `{"admin_token": "secret_token"}`
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/counter/test_reset/reset", 
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/counter/test_reset/reset",
 			strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		recorder := httptest.NewRecorder()
@@ -449,7 +449,7 @@ func TestHandler_Reset(t *testing.T) {
 		// 驗證
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err = json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
@@ -457,7 +457,7 @@ func TestHandler_Reset(t *testing.T) {
 		success, ok := response["success"].(bool)
 		assert.True(t, ok, "response should have success field")
 		assert.True(t, success)
-		
+
 		// 檢查 current_value 欄位
 		if success {
 			currentValue, ok := response["current_value"].(float64)
@@ -473,7 +473,7 @@ func TestHandler_Reset(t *testing.T) {
 
 	t.Run("reset with invalid admin token", func(t *testing.T) {
 		body := `{"admin_token": "wrong_token"}`
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/counter/test_reset/reset", 
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/counter/test_reset/reset",
 			strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		recorder := httptest.NewRecorder()
@@ -482,7 +482,7 @@ func TestHandler_Reset(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
@@ -492,7 +492,7 @@ func TestHandler_Reset(t *testing.T) {
 
 	t.Run("reset without admin token", func(t *testing.T) {
 		body := `{}`
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/counter/test_reset/reset", 
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/counter/test_reset/reset",
 			strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		recorder := httptest.NewRecorder()
@@ -504,7 +504,7 @@ func TestHandler_Reset(t *testing.T) {
 
 	t.Run("reset with invalid JSON", func(t *testing.T) {
 		body := `{invalid json}`
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/counter/test_reset/reset", 
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/counter/test_reset/reset",
 			strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		recorder := httptest.NewRecorder()
@@ -559,7 +559,7 @@ func TestHandler_HealthCheck(t *testing.T) {
 		// 應該返回服務不可用
 		assert.Equal(t, http.StatusServiceUnavailable, recorder.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.NewDecoder(recorder.Body).Decode(&response)
 		require.NoError(t, err)
 
@@ -610,7 +610,7 @@ func TestHandler_Middleware(t *testing.T) {
 				if err := recover(); err != nil {
 					logger.Error("panic recovered", "error", err)
 					w.WriteHeader(http.StatusInternalServerError)
-					json.NewEncoder(w).Encode(map[string]interface{}{
+					json.NewEncoder(w).Encode(map[string]any{
 						"success": false,
 						"error":   "internal server error",
 					})
@@ -661,11 +661,11 @@ func TestHandler_ConcurrentRequests(t *testing.T) {
 
 				for j := 0; j < numRequests/numWorkers; j++ {
 					body := fmt.Sprintf(`{"value": %d}`, j+1)
-					req := httptest.NewRequest(http.MethodPost, 
-						"/api/v1/counter/concurrent_test/increment", 
+					req := httptest.NewRequest(http.MethodPost,
+						"/api/v1/counter/concurrent_test/increment",
 						strings.NewReader(body))
 					req.Header.Set("Content-Type", "application/json")
-					
+
 					recorder := httptest.NewRecorder()
 					routes.ServeHTTP(recorder, req)
 
@@ -681,7 +681,7 @@ func TestHandler_ConcurrentRequests(t *testing.T) {
 		wg.Wait()
 
 		// 大部分請求應該成功
-		assert.Greater(t, successCount, numRequests*9/10, 
+		assert.Greater(t, successCount, numRequests*9/10,
 			"At least 90%% of requests should succeed")
 	})
 
@@ -699,11 +699,11 @@ func TestHandler_ConcurrentRequests(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				for j := 0; j < 10; j++ {
-					req := httptest.NewRequest(http.MethodPost, 
-						"/api/v1/counter/mixed_concurrent/increment", 
+					req := httptest.NewRequest(http.MethodPost,
+						"/api/v1/counter/mixed_concurrent/increment",
 						strings.NewReader(`{"value": 1}`))
 					req.Header.Set("Content-Type", "application/json")
-					
+
 					recorder := httptest.NewRecorder()
 					routes.ServeHTTP(recorder, req)
 				}
@@ -715,11 +715,11 @@ func TestHandler_ConcurrentRequests(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				for j := 0; j < 10; j++ {
-					req := httptest.NewRequest(http.MethodPost, 
-						"/api/v1/counter/mixed_concurrent/decrement", 
+					req := httptest.NewRequest(http.MethodPost,
+						"/api/v1/counter/mixed_concurrent/decrement",
 						strings.NewReader(`{"value": 1}`))
 					req.Header.Set("Content-Type", "application/json")
-					
+
 					recorder := httptest.NewRecorder()
 					routes.ServeHTTP(recorder, req)
 				}
@@ -731,9 +731,9 @@ func TestHandler_ConcurrentRequests(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				for j := 0; j < 10; j++ {
-					req := httptest.NewRequest(http.MethodGet, 
+					req := httptest.NewRequest(http.MethodGet,
 						"/api/v1/counter/mixed_concurrent", nil)
-					
+
 					recorder := httptest.NewRecorder()
 					routes.ServeHTTP(recorder, req)
 				}
@@ -793,11 +793,11 @@ func TestHandler_ErrorCases(t *testing.T) {
 	t.Run("very large request body", func(t *testing.T) {
 		// 創建一個非常大的請求體
 		largeBody := strings.Repeat("a", 1024*1024) // 1MB
-		req := httptest.NewRequest(http.MethodPost, 
-			"/api/v1/counter/test/increment", 
+		req := httptest.NewRequest(http.MethodPost,
+			"/api/v1/counter/test/increment",
 			strings.NewReader(largeBody))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		recorder := httptest.NewRecorder()
 		routes.ServeHTTP(recorder, req)
 
@@ -822,7 +822,7 @@ func TestHandler_Integration(t *testing.T) {
 		counterName := "lifecycle_test"
 
 		// 1. 初始增加
-		req := httptest.NewRequest(http.MethodPost, 
+		req := httptest.NewRequest(http.MethodPost,
 			fmt.Sprintf("/api/v1/counter/%s/increment", counterName),
 			strings.NewReader(`{"value": 10}`))
 		req.Header.Set("Content-Type", "application/json")
@@ -830,23 +830,23 @@ func TestHandler_Integration(t *testing.T) {
 		routes.ServeHTTP(recorder, req)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		var incResp map[string]interface{}
+		var incResp map[string]any
 		json.NewDecoder(recorder.Body).Decode(&incResp)
 		assert.Equal(t, float64(10), incResp["current_value"])
 
 		// 2. 獲取當前值
-		req = httptest.NewRequest(http.MethodGet, 
+		req = httptest.NewRequest(http.MethodGet,
 			fmt.Sprintf("/api/v1/counter/%s", counterName), nil)
 		recorder = httptest.NewRecorder()
 		routes.ServeHTTP(recorder, req)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		var getResp map[string]interface{}
+		var getResp map[string]any
 		json.NewDecoder(recorder.Body).Decode(&getResp)
 		assert.Equal(t, float64(10), getResp["value"])
 
 		// 3. 減少
-		req = httptest.NewRequest(http.MethodPost, 
+		req = httptest.NewRequest(http.MethodPost,
 			fmt.Sprintf("/api/v1/counter/%s/decrement", counterName),
 			strings.NewReader(`{"value": 3}`))
 		req.Header.Set("Content-Type", "application/json")
@@ -854,24 +854,24 @@ func TestHandler_Integration(t *testing.T) {
 		routes.ServeHTTP(recorder, req)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		var decResp map[string]interface{}
+		var decResp map[string]any
 		json.NewDecoder(recorder.Body).Decode(&decResp)
 		assert.Equal(t, float64(7), decResp["current_value"])
 
 		// 4. 批量獲取（包含此計數器）
-		req = httptest.NewRequest(http.MethodGet, 
+		req = httptest.NewRequest(http.MethodGet,
 			fmt.Sprintf("/api/v1/counters?names=%s,other_counter", counterName), nil)
 		recorder = httptest.NewRecorder()
 		routes.ServeHTTP(recorder, req)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		var multiResp map[string]interface{}
+		var multiResp map[string]any
 		json.NewDecoder(recorder.Body).Decode(&multiResp)
-		counters := multiResp["counters"].([]interface{})
+		counters := multiResp["counters"].([]any)
 		assert.Len(t, counters, 2)
 
 		// 5. 重置
-		req = httptest.NewRequest(http.MethodPost, 
+		req = httptest.NewRequest(http.MethodPost,
 			fmt.Sprintf("/api/v1/counter/%s/reset", counterName),
 			strings.NewReader(`{"admin_token": "secret_token"}`))
 		req.Header.Set("Content-Type", "application/json")
@@ -879,18 +879,18 @@ func TestHandler_Integration(t *testing.T) {
 		routes.ServeHTTP(recorder, req)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		var resetResp map[string]interface{}
+		var resetResp map[string]any
 		json.NewDecoder(recorder.Body).Decode(&resetResp)
 		assert.Equal(t, float64(0), resetResp["current_value"])
 
 		// 6. 驗證重置後的值
-		req = httptest.NewRequest(http.MethodGet, 
+		req = httptest.NewRequest(http.MethodGet,
 			fmt.Sprintf("/api/v1/counter/%s", counterName), nil)
 		recorder = httptest.NewRecorder()
 		routes.ServeHTTP(recorder, req)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		var finalResp map[string]interface{}
+		var finalResp map[string]any
 		json.NewDecoder(recorder.Body).Decode(&finalResp)
 		assert.Equal(t, float64(0), finalResp["value"])
 	})
@@ -910,15 +910,15 @@ func BenchmarkHandler_Increment(b *testing.B) {
 		for pb.Next() {
 			counterName := fmt.Sprintf("bench_%d", i%100)
 			body := fmt.Sprintf(`{"value": %d}`, (i%10)+1)
-			
+
 			req := httptest.NewRequest(http.MethodPost,
 				fmt.Sprintf("/api/v1/counter/%s/increment", counterName),
 				strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			recorder := httptest.NewRecorder()
 			routes.ServeHTTP(recorder, req)
-			
+
 			if recorder.Code != http.StatusOK {
 				b.Fatalf("unexpected status code: %d", recorder.Code)
 			}
@@ -947,13 +947,13 @@ func BenchmarkHandler_Get(b *testing.B) {
 		i := 0
 		for pb.Next() {
 			counterName := fmt.Sprintf("get_bench_%d", i%100)
-			
+
 			req := httptest.NewRequest(http.MethodGet,
 				fmt.Sprintf("/api/v1/counter/%s", counterName), nil)
-			
+
 			recorder := httptest.NewRecorder()
 			routes.ServeHTTP(recorder, req)
-			
+
 			if recorder.Code != http.StatusOK {
 				b.Fatalf("unexpected status code: %d", recorder.Code)
 			}
@@ -985,10 +985,10 @@ func BenchmarkHandler_GetMultiple(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		req := httptest.NewRequest(http.MethodGet,
 			fmt.Sprintf("/api/v1/counters?names=%s", namesParam), nil)
-		
+
 		recorder := httptest.NewRecorder()
 		routes.ServeHTTP(recorder, req)
-		
+
 		if recorder.Code != http.StatusOK {
 			b.Fatalf("unexpected status code: %d", recorder.Code)
 		}
@@ -1009,12 +1009,12 @@ func TestHandler_LargePayload(t *testing.T) {
 
 	t.Run("large metadata", func(t *testing.T) {
 		// 創建包含大型 metadata 的請求
-		metadata := make(map[string]interface{})
+		metadata := make(map[string]any)
 		for i := 0; i < 100; i++ {
 			metadata[fmt.Sprintf("field_%d", i)] = fmt.Sprintf("value_%d", i)
 		}
 
-		body := map[string]interface{}{
+		body := map[string]any{
 			"value":    1,
 			"metadata": metadata,
 		}
@@ -1072,7 +1072,7 @@ func TestHandler_RequestTimeout(t *testing.T) {
 	defer counter.Shutdown()
 
 	handler := internal.NewHandler(counter, env.Logger)
-	
+
 	// 創建一個有超時的處理器
 	timeoutHandler := http.TimeoutHandler(handler.Routes(), 100*time.Millisecond, "timeout")
 
@@ -1087,7 +1087,7 @@ func TestHandler_RequestTimeout(t *testing.T) {
 					fmt.Sprintf("/api/v1/counter/timeout_test_%d/increment", id),
 					strings.NewReader(`{"value": 1}`))
 				req.Header.Set("Content-Type", "application/json")
-				
+
 				recorder := httptest.NewRecorder()
 				timeoutHandler.ServeHTTP(recorder, req)
 			}(i)

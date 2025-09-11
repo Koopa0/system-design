@@ -45,7 +45,7 @@ const (
 type Counter struct {
 	redis   *redis.Client
 	pg      *pgxpool.Pool
-	queries sqlc.Querier // sqlc 生成的查詢介面
+	queries sqlc.Querier
 	config  *Config
 	logger  *slog.Logger
 
@@ -72,7 +72,7 @@ func NewCounter(redis *redis.Client, pg *pgxpool.Pool, config *Config, logger *s
 	c := &Counter{
 		redis:       redis,
 		pg:          pg,
-		queries:     sqlc.New(pg), // 初始化 sqlc 查詢介面
+		queries:     sqlc.New(pg),
 		config:      config,
 		logger:      logger,
 		batchBuffer: make(chan *batchWrite, config.Counter.BatchSize*2),

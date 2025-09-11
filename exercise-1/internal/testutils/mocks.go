@@ -11,7 +11,6 @@ import (
 	"github.com/koopa0/system-design/exercise-1/internal/sqlc"
 )
 
-// MockQuerier 實作 sqlc.Querier 介面的 mock
 type MockQuerier struct {
 	mu       sync.RWMutex
 	counters map[string]int64
@@ -225,8 +224,8 @@ func (m *MockQuerier) ListCounters(ctx context.Context, params sqlc.ListCounters
 }
 
 // GetCounterStats 獲取計數器統計資訊（測試用）
-func (m *MockQuerier) GetCounterStats() map[string]interface{} {
-	return map[string]interface{}{
+func (m *MockQuerier) GetCounterStats() map[string]any {
+	return map[string]any{
 		"increment_calls": m.IncrementCalls.Load(),
 		"decrement_calls": m.DecrementCalls.Load(),
 		"get_calls":       m.GetCalls.Load(),

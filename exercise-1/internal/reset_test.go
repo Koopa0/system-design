@@ -94,7 +94,7 @@ func TestResetScheduler_Archive(t *testing.T) {
 
 	t.Run("archive counter before reset", func(t *testing.T) {
 		counterName := "archive_test"
-		
+
 		// 設置計數器值
 		_, err := counter.Increment(ctx, counterName, 50, "")
 		require.NoError(t, err)
@@ -103,7 +103,7 @@ func TestResetScheduler_Archive(t *testing.T) {
 		location, _ := time.LoadLocation("Asia/Taipei")
 		today := time.Now().In(location).Format("20060102")
 		dauKey := fmt.Sprintf("counter:%s:users:%s", counterName, today)
-		
+
 		users := []string{"user1", "user2", "user3"}
 		for _, user := range users {
 			err = env.RedisClient.SAdd(ctx, dauKey, user).Err()
@@ -122,7 +122,7 @@ func TestResetScheduler_Archive(t *testing.T) {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			UNIQUE(counter_name, date)
 		)`
-		
+
 		_, err = env.PostgresPool.Exec(ctx, createHistoryTable)
 		require.NoError(t, err)
 
@@ -137,7 +137,7 @@ func TestResetScheduler_Archive(t *testing.T) {
 		    metadata = EXCLUDED.metadata`
 
 		usersJSON, _ := json.Marshal(users)
-		metadata := map[string]interface{}{
+		metadata := map[string]any{
 			"archived_at": time.Now(),
 			"user_count":  len(users),
 		}
@@ -154,13 +154,13 @@ func TestResetScheduler_Archive(t *testing.T) {
 
 		// 驗證歸檔記錄
 		var archivedValue int64
-		var archivedUsers json.RawMessage
-		
+		var archivedUsers []byte // 使用 []byte 替代 json.RawMessage
+
 		err = env.PostgresPool.QueryRow(ctx,
 			"SELECT final_value, unique_users FROM counter_history WHERE counter_name = $1 AND date = $2",
 			counterName, yesterday.Format("2006-01-02"),
 		).Scan(&archivedValue, &archivedUsers)
-		
+
 		require.NoError(t, err)
 		assert.Equal(t, int64(50), archivedValue)
 
@@ -190,7 +190,7 @@ func TestResetScheduler_CleanOldHistory(t *testing.T) {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		UNIQUE(counter_name, date)
 	)`
-	
+
 	_, err := env.PostgresPool.Exec(ctx, createHistoryTable)
 	require.NoError(t, err)
 
@@ -198,21 +198,21 @@ func TestResetScheduler_CleanOldHistory(t *testing.T) {
 		// 插入測試資料
 		now := time.Now()
 		testData := []struct {
-			daysAgo int
+			daysAgo         int
 			shouldBeDeleted bool
 		}{
-			{1, false},  // 1 天前，應保留
-			{3, false},  // 3 天前，應保留
-			{7, false},  // 7 天前，應保留
-			{8, true},   // 8 天前，應刪除
-			{10, true},  // 10 天前，應刪除
-			{30, true},  // 30 天前，應刪除
+			{1, false}, // 1 天前，應保留
+			{3, false}, // 3 天前，應保留
+			{7, false}, // 7 天前，應保留
+			{8, true},  // 8 天前，應刪除
+			{10, true}, // 10 天前，應刪除
+			{30, true}, // 30 天前，應刪除
 		}
 
 		for i, td := range testData {
 			date := now.AddDate(0, 0, -td.daysAgo)
 			counterName := fmt.Sprintf("history_test_%d", i)
-			
+
 			_, err := env.PostgresPool.Exec(ctx,
 				`INSERT INTO counter_history (counter_name, date, final_value) VALUES ($1, $2, $3)`,
 				counterName, date.Format("2006-01-02"), 100,
@@ -265,7 +265,7 @@ func TestResetScheduler_Timezone(t *testing.T) {
 
 		// 驗證日期格式
 		assert.Equal(t, 8, len(dateStr))
-		
+
 		// 解析回來應該相同
 		parsed, err := time.ParseInLocation("20060102", dateStr, location)
 		require.NoError(t, err)
@@ -335,7 +335,7 @@ func TestResetScheduler_ErrorHandling(t *testing.T) {
 		env.PostgresPool.Close()
 
 		scheduler := internal.NewResetScheduler(counter, env.Logger)
-		
+
 		// 啟動應該不會 panic
 		assert.NotPanics(t, func() {
 			scheduler.Start()
@@ -349,7 +349,7 @@ func TestResetScheduler_ErrorHandling(t *testing.T) {
 		env.RedisClient.Close()
 
 		scheduler := internal.NewResetScheduler(counter, env.Logger)
-		
+
 		// 操作應該優雅處理錯誤
 		assert.NotPanics(t, func() {
 			scheduler.Start()
@@ -414,7 +414,7 @@ func TestResetScheduler_Integration(t *testing.T) {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		UNIQUE(counter_name, date)
 	)`
-	
+
 	_, err := env.PostgresPool.Exec(ctx, createHistoryTable)
 	require.NoError(t, err)
 
@@ -422,7 +422,7 @@ func TestResetScheduler_Integration(t *testing.T) {
 		// 1. 設置計數器
 		counterName := "daily_active_users"
 		users := []string{"user1", "user2", "user3"}
-		
+
 		for _, userID := range users {
 			_, err := counter.Increment(ctx, counterName, 1, userID)
 			assert.NoError(t, err)
@@ -436,9 +436,9 @@ func TestResetScheduler_Integration(t *testing.T) {
 		// 2. 手動執行歸檔（模擬午夜前）
 		location, _ := time.LoadLocation("Asia/Taipei")
 		yesterday := time.Now().In(location).AddDate(0, 0, -1)
-		
+
 		usersJSON, _ := json.Marshal(users)
-		metadata := map[string]interface{}{
+		metadata := map[string]any{
 			"archived_at": time.Now(),
 			"user_count":  len(users),
 		}
@@ -472,7 +472,7 @@ func TestResetScheduler_Integration(t *testing.T) {
 			`SELECT final_value FROM counter_history WHERE counter_name = $1 AND date = $2`,
 			counterName, yesterday.Format("2006-01-02"),
 		).Scan(&archivedValue)
-		
+
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), archivedValue)
 
