@@ -56,6 +56,12 @@ type Counter struct {
 	// 批量寫入緩衝
 	batchBuffer chan *batchWrite
 	wg          sync.WaitGroup
+
+	// 記憶體快取（降級模式使用）
+	cache *MemoryCache
+
+	// Redis 恢復通知
+	recoverySignal chan struct{}
 }
 
 // batchWrite 批量寫入項目
@@ -70,12 +76,31 @@ type batchWrite struct {
 // NewCounter 創建計數器實例
 func NewCounter(redis *redis.Client, pg *pgxpool.Pool, config *Config, logger *slog.Logger) *Counter {
 	c := &Counter{
-		redis:       redis,
-		pg:          pg,
-		queries:     sqlc.New(pg),
-		config:      config,
-		logger:      logger,
-		batchBuffer: make(chan *batchWrite, config.Counter.BatchSize*2),
+		redis:          redis,
+		pg:             pg,
+		queries:        sqlc.New(pg),
+		config:         config,
+		logger:         logger,
+		batchBuffer:    make(chan *batchWrite, config.Counter.BatchSize*2),
+		recoverySignal: make(chan struct{}, 1),
+	}
+
+	// 初始化記憶體快取（如果啟用）
+	if config.Counter.EnableMemoryCache {
+		cacheSize := config.Counter.CacheSize
+		if cacheSize == 0 {
+			cacheSize = 10000 // 預設快取 10000 項
+		}
+		cacheTTL := config.Counter.CacheTTL
+		if cacheTTL == 0 {
+			cacheTTL = 5 * time.Minute // 預設 5 分鐘過期
+		}
+		c.cache = NewMemoryCache(cacheSize, cacheTTL)
+	}
+
+	// 設定預設 DAU 計數模式
+	if config.Counter.DAUCountMode == "" {
+		config.Counter.DAUCountMode = "exact" // 預設使用精確計數以保持向後相容
 	}
 
 	// 啟動批量寫入 worker

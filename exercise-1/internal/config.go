@@ -40,6 +40,12 @@ type Config struct {
 		FlushInterval     time.Duration `yaml:"flush_interval"`
 		EnableFallback    bool          `yaml:"enable_fallback"`
 		FallbackThreshold int           `yaml:"fallback_threshold"`
+		
+		// DAU 計數模式配置
+		DAUCountMode      string        `yaml:"dau_count_mode"`       // "exact" 或 "approximate"
+		EnableMemoryCache bool          `yaml:"enable_memory_cache"`   // 降級時啟用記憶體快取
+		CacheTTL          time.Duration `yaml:"cache_ttl"`             // 快取過期時間
+		CacheSize         int           `yaml:"cache_size"`            // 快取大小（項目數）
 	} `yaml:"counter"`
 
 	Log struct {

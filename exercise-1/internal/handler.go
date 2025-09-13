@@ -83,7 +83,6 @@ func (h *Handler) increment(w http.ResponseWriter, r *http.Request) {
 	// 解析請求
 	var req incrementRequest
 	if r.ContentLength > 0 {
-		// 使用 json/v2 的 UnmarshalRead 直接從 Reader 解碼
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			h.respondError(w, "invalid request body", http.StatusBadRequest)
 			return
@@ -119,7 +118,6 @@ func (h *Handler) decrement(w http.ResponseWriter, r *http.Request) {
 
 	var req incrementRequest
 	if r.ContentLength > 0 {
-		// 使用 json/v2 的 UnmarshalRead
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			h.respondError(w, "invalid request body", http.StatusBadRequest)
 			return
@@ -211,7 +209,6 @@ func (h *Handler) reset(w http.ResponseWriter, r *http.Request) {
 		AdminToken string `json:"admin_token"`
 	}
 
-	// 使用 json/v2 的 UnmarshalRead
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.respondError(w, "invalid request", http.StatusBadRequest)
 		return
@@ -297,7 +294,6 @@ func (h *Handler) recoverer(next http.HandlerFunc) http.HandlerFunc {
 
 func (h *Handler) respondJSON(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "application/json")
-	// 使用 json/v2 的 MarshalWrite 直接寫入 Writer，效能更好，應用配置的選項
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		h.logger.Error("failed to encode response", "error", err)
 	}
@@ -306,7 +302,6 @@ func (h *Handler) respondJSON(w http.ResponseWriter, data any) {
 func (h *Handler) respondError(w http.ResponseWriter, message string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	// 寫入錯誤響應
 	if err := json.NewEncoder(w).Encode(counterResponse{
 		Success: false,
 		Error:   message,
