@@ -91,7 +91,7 @@ func (sw *SlidingWindow) Allow() bool {
 
 	// 清理過期請求
 	// 實作說明：找到第一個未過期的請求位置
-	validIdx := 0
+	validIdx := -1  // -1 表示所有請求都過期
 	for i, reqTime := range sw.requests {
 		if reqTime.After(windowStart) {
 			validIdx = i
@@ -100,10 +100,15 @@ func (sw *SlidingWindow) Allow() bool {
 	}
 
 	// 移除過期請求
-	// 優化：使用 slice reslice 而非逐個刪除
-	if validIdx > 0 {
+	// 修復：當所有請求都過期時（validIdx == -1），也要清空 slice
+	if validIdx == -1 {
+		// 所有請求都過期，清空 slice
+		sw.requests = sw.requests[:0]
+	} else if validIdx > 0 {
+		// 部分請求過期，保留未過期的部分
 		sw.requests = sw.requests[validIdx:]
 	}
+	// validIdx == 0 時，第一個請求就未過期，無需處理
 
 	// 檢查是否超過限制
 	if int64(len(sw.requests)) < sw.limit {

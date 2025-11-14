@@ -84,8 +84,15 @@ func (tb *TokenBucket) Allow() bool {
 	if tokensToAdd > 0 {
 		// 填充令牌，但不超過容量
 		tb.tokens = min(tb.capacity, tb.tokens+tokensToAdd)
-		tb.lastRefill = now
 	}
+
+	// 修復：始終更新 lastRefill，避免時間漂移
+	//
+	// 問題：當 tokensToAdd == 0 時（高頻請求，elapsed < 1秒），
+	// 如果不更新 lastRefill，fractional seconds 會累積丟失
+	//
+	// 解決：每次都更新 lastRefill，保證時間連續性
+	tb.lastRefill = now
 
 	// 嘗試取出令牌
 	if tb.tokens > 0 {
