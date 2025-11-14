@@ -6,7 +6,38 @@ import (
 	"time"
 )
 
+// 系統設計問題：
+//   如何管理多人遊戲房間的生命週期，處理並發操作，並實時同步狀態？
+//
+// 核心挑戰：
+//   1. 狀態管理：房間有複雜的狀態轉換（waiting → preparing → ready → playing）
+//   2. 並發控制：多個玩家同時操作（加入、準備、選歌）
+//   3. 實時通信：狀態變更需要立即通知所有玩家
+//   4. 資源回收：空閒房間自動關閉（避免內存洩漏）
+//
+// 設計方案：
+//   ✅ 有限狀態機（FSM）- 規範狀態轉換
+//   ✅ RWMutex - 讀多寫少優化
+//   ✅ 事件驅動 - 狀態變更異步通知
+//   ✅ 超時機制 - 自動清理空閒房間
+
 // RoomStatus 房間狀態
+//
+// 有限狀態機設計：
+//   waiting → preparing → ready → playing → finished → closed
+//              ↑____________↓
+//
+// 狀態轉換規則：
+//   - waiting → preparing：所有玩家到齊
+//   - preparing → ready：房主選歌 + 所有玩家準備
+//   - ready → playing：房主開始遊戲
+//   - playing → finished：遊戲結束
+//   - 任何狀態 → closed：房主解散 / 超時
+//
+// 為什麼需要狀態機？
+//   - 防止非法操作（如遊戲中途加人）
+//   - 清晰的生命週期管理
+//   - 簡化錯誤處理
 type RoomStatus string
 
 const (
@@ -45,12 +76,45 @@ type Song struct {
 }
 
 // Room 遊戲房間
+//
+// 系統設計考量：
+//
+// 1. 並發控制（RWMutex）：
+//    問題：多個玩家同時操作同一房間（加入、準備、選歌）
+//    方案：sync.RWMutex（讀寫鎖）
+//    優勢：
+//      - 讀操作並發（查詢房間狀態、獲取玩家列表）
+//      - 寫操作互斥（加入玩家、改變狀態）
+//      - 性能：讀多寫少場景優化（相比 Mutex）
+//
+// 2. 事件驅動架構（events chan）：
+//    問題：房間狀態改變需要通知所有連接的客戶端
+//    方案：事件通道 + WebSocket 廣播
+//    流程：
+//      操作（如玩家加入）→ 修改狀態 → 發送事件 → WebSocket 廣播
+//    優勢：
+//      - 解耦：業務邏輯與通知邏輯分離
+//      - 異步：不阻塞主流程
+//      - 緩衝：channel 緩衝 100 個事件（應對突發）
+//
+// 3. 資源管理（lastActive）：
+//    問題：空閒房間佔用內存（玩家全部離開但房間未關閉）
+//    方案：超時自動清理
+//    策略：
+//      - 追蹤最後活動時間
+//      - 定期掃描（如每分鐘）
+//      - 超過閾值（如 30 分鐘）自動關閉
+//
+// 4. 容量規劃：
+//    - 單房間最大玩家：4 人（根據遊戲設計）
+//    - 事件緩衝：100 個（應對快速操作）
+//    - 超時閾值：30 分鐘（平衡體驗與資源）
 type Room struct {
 	ID          string     `json:"room_id"`
 	Name        string     `json:"room_name"`
-	JoinCode    string     `json:"join_code"`
+	JoinCode    string     `json:"join_code"`     // 簡短加入碼（如 "ABC123"）
 	MaxPlayers  int        `json:"max_players"`
-	Password    string     `json:"-"` // 不序列化密碼
+	Password    string     `json:"-"`             // 不序列化（安全）
 	HasPassword bool       `json:"has_password"`
 	GameMode    GameMode   `json:"game_mode"`
 	Difficulty  string     `json:"difficulty"`
@@ -60,11 +124,11 @@ type Room struct {
 
 	Players      map[string]*Player `json:"players"`
 	SelectedSong *Song              `json:"selected_song,omitempty"`
-	HostID       string             `json:"host_id"`
+	HostID       string             `json:"host_id"`      // 房主有特殊權限
 
-	Mu         sync.RWMutex `json:"-"`
-	events     chan Event   // 事件通道
-	lastActive time.Time    // 最後活動時間
+	Mu         sync.RWMutex `json:"-"`  // 讀寫鎖（並發控制）
+	events     chan Event              // 事件通道（異步通知）
+	lastActive time.Time               // 最後活動時間（資源回收）
 }
 
 // Event 房間事件
@@ -95,21 +159,42 @@ func NewRoom(id, name, joinCode string, maxPlayers int, password string, mode Ga
 }
 
 // AddPlayer 加入玩家
+//
+// 系統設計重點：
+//
+// 1. 並發安全（寫鎖）：
+//    - 使用 Lock（寫鎖）而非 RLock（讀鎖）
+//    - 修改房間狀態需要排他訪問
+//    - defer Unlock 確保異常時也釋放鎖
+//
+// 2. 狀態機驗證：
+//    - 只允許在 waiting/preparing 狀態加入
+//    - playing/finished 狀態不允許（遊戲已開始/結束）
+//    - 防止非法操作（系統設計核心）
+//
+// 3. 狀態自動轉換：
+//    - waiting → preparing（人滿自動轉換）
+//    - 體現狀態機的自動化
+//
+// 4. 事件通知：
+//    - 操作完成後發送事件
+//    - 異步通知所有客戶端（WebSocket 廣播）
+//    - 不阻塞主流程（channel 緩衝）
 func (r *Room) AddPlayer(playerID, playerName string) error {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
 
-	// 檢查房間狀態
+	// 狀態檢查（狀態機驗證）
 	if r.Status != StatusWaiting && r.Status != StatusPreparing {
 		return fmt.Errorf("房間狀態不允許加入: %s", r.Status)
 	}
 
-	// 檢查人數上限
+	// 容量檢查
 	if len(r.Players) >= r.MaxPlayers {
 		return fmt.Errorf("房間已滿")
 	}
 
-	// 檢查是否已在房間內
+	// 重複檢查（冪等性）
 	if _, exists := r.Players[playerID]; exists {
 		return fmt.Errorf("玩家已在房間內")
 	}
@@ -118,7 +203,7 @@ func (r *Room) AddPlayer(playerID, playerName string) error {
 	player := &Player{
 		ID:       playerID,
 		Name:     playerName,
-		IsHost:   len(r.Players) == 0, // 第一個玩家成為房主
+		IsHost:   len(r.Players) == 0, // 第一個玩家自動成為房主
 		IsReady:  false,
 		JoinedAt: time.Now(),
 	}
@@ -128,15 +213,15 @@ func (r *Room) AddPlayer(playerID, playerName string) error {
 		r.HostID = playerID
 	}
 
-	// 更新房間狀態
+	// 狀態自動轉換（狀態機）
 	if len(r.Players) == r.MaxPlayers && r.Status == StatusWaiting {
-		r.Status = StatusPreparing
+		r.Status = StatusPreparing // 人滿 → 準備選歌
 	}
 
 	r.lastActive = time.Now()
 	r.UpdatedAt = time.Now()
 
-	// 發送事件
+	// 異步事件通知（事件驅動）
 	r.sendEvent(Event{
 		Type: "player_joined",
 		Data: map[string]any{
