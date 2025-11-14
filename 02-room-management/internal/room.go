@@ -130,6 +130,7 @@ type Room struct {
 	Mu         sync.RWMutex `json:"-"` // 讀寫鎖（並發控制）
 	events     chan Event   // 事件通道（異步通知）
 	lastActive time.Time    // 最後活動時間（資源回收）
+	closeOnce  sync.Once    // 確保 channel 只關閉一次
 }
 
 // Event 房間事件
@@ -448,7 +449,11 @@ func (r *Room) Close(reason string) {
 
 	// 給接收者一點時間處理事件
 	time.Sleep(10 * time.Millisecond)
-	close(r.events)
+
+	// 使用 sync.Once 確保 channel 只關閉一次（防止 panic）
+	r.closeOnce.Do(func() {
+		close(r.events)
+	})
 }
 
 // IsExpired 檢查房間是否過期

@@ -272,26 +272,23 @@ func (m *Manager) Cleanup() {
 
 // cleanup 執行清理
 func (m *Manager) cleanup() {
+	// 修復 TOCTOU（Time-Of-Check-Time-Of-Use）問題：
+	//   問題：在釋放鎖後，房間可能被其他 goroutine 刪除
+	//   方案：持有鎖時複製房間引用，然後釋放鎖再操作
 	m.mu.RLock()
-	var toRemove []string
-	for roomID, room := range m.rooms {
+	var toRemove []*Room
+	for _, room := range m.rooms {
 		if room.IsExpired() {
-			toRemove = append(toRemove, roomID)
+			toRemove = append(toRemove, room)
 		}
 	}
 	m.mu.RUnlock()
 
-	// 移除過期房間
-	for _, roomID := range toRemove {
-		m.mu.RLock()
-		room := m.rooms[roomID]
-		m.mu.RUnlock()
-
-		if room != nil {
-			room.Close("timeout")
-			m.removeRoom(roomID)
-			m.logger.Info("房間已過期清理", "room_id", roomID)
-		}
+	// 移除過期房間（已持有房間引用，安全操作）
+	for _, room := range toRemove {
+		room.Close("timeout")
+		m.removeRoom(room.ID)
+		m.logger.Info("房間已過期清理", "room_id", room.ID)
 	}
 }
 
@@ -308,10 +305,12 @@ func (m *Manager) removeRoom(roomID string) {
 	// 清理加入碼
 	delete(m.joinCodes, room.JoinCode)
 
-	// 清理玩家記錄
+	// 清理玩家記錄（需持有房間鎖保護對 Players 的訪問）
+	room.Mu.RLock()
 	for playerID := range room.Players {
 		delete(m.playerRoom, playerID)
 	}
+	room.Mu.RUnlock()
 
 	// 移除房間
 	delete(m.rooms, roomID)

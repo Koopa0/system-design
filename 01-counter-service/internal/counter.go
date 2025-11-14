@@ -448,7 +448,10 @@ func (c *Counter) batchWorker() {
 			}
 		}
 
-		batch = batch[:0]
+		// 修復記憶體洩漏：建立新 slice 而非重用
+		//   問題：batch[:0] 保留底層陣列的指標，阻止垃圾回收
+		//   方案：建立新 slice 釋放舊指標
+		batch = make([]*batchWrite, 0, c.config.Counter.BatchSize)
 	}
 
 	for {

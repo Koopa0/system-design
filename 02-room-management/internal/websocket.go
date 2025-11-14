@@ -151,21 +151,29 @@ func (hub *WebSocketHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 // register 註冊連接
 func (hub *WebSocketHub) register(conn *Connection) {
 	hub.mu.Lock()
-	defer hub.mu.Unlock()
 
 	if hub.connections[conn.RoomID] == nil {
 		hub.connections[conn.RoomID] = make(map[string]*Connection)
 	}
 
-	// 關閉舊連接（如果存在）
-	if oldConn, exists := hub.connections[conn.RoomID][conn.PlayerID]; exists {
+	// 保存舊連接引用（如果存在）
+	var oldConn *Connection
+	if existing, exists := hub.connections[conn.RoomID][conn.PlayerID]; exists {
+		oldConn = existing
+	}
+
+	hub.connections[conn.RoomID][conn.PlayerID] = conn
+	hub.mu.Unlock()
+
+	// 修復死鎖問題：在鎖外關閉舊連接
+	//   問題：Close() 可能觸發 readPump/writePump 回調 unregister()
+	//   如果持有鎖時調用 Close()，unregister() 會嘗試獲取鎖 → 死鎖
+	if oldConn != nil {
 		oldConn.closeOnce.Do(func() {
 			close(oldConn.Send)
 		})
 		oldConn.Conn.Close()
 	}
-
-	hub.connections[conn.RoomID][conn.PlayerID] = conn
 }
 
 // unregister 取消註冊連接
@@ -274,19 +282,26 @@ func (hub *WebSocketHub) Stop() {
 	close(hub.stopCh)
 	hub.wg.Wait()
 
-	// 關閉所有連接
+	// 修復死鎖問題：複製連接後釋放鎖，再關閉
+	//   問題：持有鎖時調用 Conn.Close() 可能觸發回調 unregister()
+	//   unregister() 會嘗試獲取鎖 → 死鎖
 	hub.mu.Lock()
+	allConns := make([]*Connection, 0)
 	for _, roomConns := range hub.connections {
 		for _, conn := range roomConns {
-			// 先關閉 Send channel，再關閉連接
-			conn.closeOnce.Do(func() {
-				close(conn.Send)
-			})
-			conn.Conn.Close()
+			allConns = append(allConns, conn)
 		}
 	}
 	hub.connections = make(map[string]map[string]*Connection)
 	hub.mu.Unlock()
+
+	// 在鎖外關閉所有連接
+	for _, conn := range allConns {
+		conn.closeOnce.Do(func() {
+			close(conn.Send)
+		})
+		conn.Conn.Close()
+	}
 
 	hub.logger.Info("WebSocket Hub 已停止")
 }
