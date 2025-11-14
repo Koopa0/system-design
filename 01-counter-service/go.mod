@@ -1,4 +1,4 @@
-module github.com/koopa0/system-design/exercise-1
+module github.com/koopa0/system-design/01-counter-service
 
 go 1.25.1
 

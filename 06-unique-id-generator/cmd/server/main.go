@@ -14,7 +14,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/koopa0/06-unique-id-generator/internal/generator"
+	"github.com/koopa0/system-design/06-unique-id-generator/internal/generator"
 )
 
 var (

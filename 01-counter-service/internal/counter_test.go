@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/koopa0/system-design/exercise-1/internal"
-	"github.com/koopa0/system-design/exercise-1/internal/testutils"
+	"github.com/koopa0/system-design/01-counter-service/internal"
+	"github.com/koopa0/system-design/01-counter-service/internal/testutils"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

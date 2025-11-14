@@ -13,8 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Koopa0/system-design/04-rate-limiter/internal/limiter"
-	"github.com/Koopa0/system-design/04-rate-limiter/internal/middleware"
+	"github.com/koopa0/system-design/04-rate-limiter/internal/limiter"
+	"github.com/koopa0/system-design/04-rate-limiter/internal/middleware"
 	"github.com/redis/go-redis/v9"
 )
 

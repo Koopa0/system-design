@@ -1,6 +1,6 @@
 # Room Management 系統設計文檔
 
-## 📋 問題定義
+## 問題定義
 
 ### 業務需求
 構建多人遊戲房間管理系統，支援：
@@ -20,14 +20,14 @@
 
 ---
 
-## 🤔 設計決策樹
+## 設計決策樹
 
 ### 決策 1：如何實現實時狀態同步？
 
 ```
 需求：玩家操作（加入、準備）需要立即通知房間內所有人
 
-❌ 方案 A：HTTP 輪詢（Polling）
+方案 A：HTTP 輪詢（Polling）
    機制：客戶端每 N 秒請求一次狀態
    問題：
    - 延遲高：最壞情況 N 秒延遲
@@ -39,7 +39,7 @@
    - 輪詢間隔 1 秒 = 4000 QPS
    - 90% 請求無狀態變化（浪費）
 
-❌ 方案 B：Server-Sent Events (SSE)
+方案 B：Server-Sent Events (SSE)
    機制：服務器單向推送事件流
    優勢：實時推送、HTTP 兼容
    問題：
@@ -47,7 +47,7 @@
    - 連接管理複雜：需要維護兩套協議
    - 代理不友好：某些代理會緩衝 SSE
 
-✅ 方案 C：WebSocket
+選擇方案 C：WebSocket
    機制：全雙工持久連接
    優勢：
    - 實時雙向：服務器推送 + 客戶端操作
@@ -83,7 +83,7 @@ for event := range room.Events() {
 ```
 問題：房間有複雜的狀態轉換，如何保證邏輯正確性？
 
-❌ 方案 A：布林標誌組合（isWaiting, isPlaying, isFinished）
+方案 A：布林標誌組合（isWaiting, isPlaying, isFinished）
    問題：
    - 狀態矛盾：可能同時 isWaiting=true, isPlaying=true
    - 難以擴展：新增狀態需要修改多處邏輯
@@ -95,13 +95,13 @@ for event := range room.Events() {
    // 忘記設置 isReady = false
    // 導致狀態不一致
 
-❌ 方案 B：字符串狀態（status = "waiting"）
+方案 B：字符串狀態（status = "waiting"）
    問題：
    - 拼寫錯誤：if status == "wating" (編譯期無法檢測)
    - 無約束：可以設置任意字符串
    - 轉換規則不明確：任何狀態都能轉到任何狀態
 
-✅ 方案 C：有限狀態機（Finite State Machine, FSM）
+選擇方案 C：有限狀態機（Finite State Machine, FSM）
    機制：
    - 枚舉所有狀態：waiting, preparing, ready, playing, finished, closed
    - 定義轉換規則：只允許特定轉換
@@ -153,18 +153,18 @@ if len(r.Players) == r.MaxPlayers && r.Status == StatusWaiting {
 ```
 問題：多個玩家同時操作同一房間（加入、準備、選歌）
 
-❌ 方案 A：無鎖（樂觀並發）
+方案 A：無鎖（樂觀並發）
    問題：
    - 競態條件：兩個玩家同時加入，都通過容量檢查
    - 結果：超過房間人數上限
 
    時序範例：
-   T1: 玩家 A 檢查容量（3/4，通過） ✅
-   T2: 玩家 B 檢查容量（3/4，通過） ✅
+   T1: 玩家 A 檢查容量（3/4，通過） 
+   T2: 玩家 B 檢查容量（3/4，通過）
    T3: 玩家 A 加入（4/4）
-   T4: 玩家 B 加入（5/4）❌ 超限！
+   T4: 玩家 B 加入（5/4）超限！
 
-❌ 方案 B：sync.Mutex（互斥鎖）
+方案 B：sync.Mutex（互斥鎖）
    機制：所有操作加鎖
    問題：
    - 性能瓶頸：讀操作（查詢房間列表）也需要鎖
@@ -174,7 +174,7 @@ if len(r.Players) == r.MaxPlayers && r.Status == StatusWaiting {
    - 操作比例：讀取 90%（查詢狀態）+ 寫入 10%（加入、準備）
    - Mutex 讀寫都互斥 → 浪費 90% 的並發潛力
 
-✅ 方案 C：sync.RWMutex（讀寫鎖）
+選擇方案 C：sync.RWMutex（讀寫鎖）
    機制：
    - 讀鎖（RLock）：多個讀取者可以並發
    - 寫鎖（Lock）：寫入者排他訪問
@@ -212,11 +212,11 @@ func (r *Room) AddPlayer(id, name string) error {
     // ... 修改狀態
 }
 
-// ⚠️ 錯誤範例：鎖升級死鎖
+// 錯誤範例：鎖升級死鎖
 func (r *Room) BadMethod() {
     r.Mu.RLock()
     // ... 讀取
-    r.Mu.Lock()   // ❌ 死鎖！無法從讀鎖升級到寫鎖
+    r.Mu.Lock()   // 死鎖！無法從讀鎖升級到寫鎖
     // ...
 }
 ```
@@ -228,7 +228,7 @@ func (r *Room) BadMethod() {
 ```
 問題：玩家操作後，需要通知房間內其他玩家
 
-❌ 方案 A：同步廣播（直接在操作中發送 WebSocket）
+方案 A：同步廣播（直接在操作中發送 WebSocket）
    機制：
    for _, conn := range room.connections {
        conn.WriteJSON(event)
@@ -244,7 +244,7 @@ func (r *Room) BadMethod() {
    - 操作延遲 = 100ms × 4 = 400ms
    - 其他玩家被迫等待
 
-❌ 方案 B：多 goroutine 廣播（每個連接一個 goroutine）
+方案 B：多 goroutine 廣播（每個連接一個 goroutine）
    機制：
    for _, conn := range room.connections {
        go conn.WriteJSON(event)
@@ -255,7 +255,7 @@ func (r *Room) BadMethod() {
    - 資源消耗：1000 房間 × 4 玩家 × 每秒 10 事件 = 40,000 goroutine/s
    - 順序無保證：事件可能亂序到達
 
-✅ 方案 C：事件驅動架構（Channel + 異步消費）
+選擇方案 C：事件驅動架構（Channel + 異步消費）
    機制：
    - 操作完成 → 發送事件到 channel
    - 後台 goroutine 異步消費 channel
@@ -328,7 +328,7 @@ func broadcastLoop(room *Room) {
 ```
 問題：玩家全部離開後，房間佔用內存未釋放
 
-❌ 方案 A：立即刪除（玩家離開時刪除空房間）
+方案 A：立即刪除（玩家離開時刪除空房間）
    問題：
    - 誤刪：玩家短暫斷線（網絡抖動）後重連，房間已消失
    - 用戶體驗差：需要重新創建房間
@@ -340,7 +340,7 @@ func broadcastLoop(room *Room) {
    - 最後一人離開，房間刪除
    - 玩家 A 重連後發現房間消失
 
-❌ 方案 B：永不刪除（手動管理）
+方案 B：永不刪除（手動管理）
    問題：
    - 內存洩漏：遺棄房間持續佔用內存
    - 資源浪費：1000 個遺棄房間 × 2KB = 2 MB
@@ -351,7 +351,7 @@ func broadcastLoop(room *Room) {
    - 一個月後：10,000 × 30 × 0.1 = 30,000 個遺棄房間
    - 內存占用：30,000 × 2KB = 60 MB
 
-✅ 方案 C：超時自動清理（延遲刪除 + 定期掃描）
+選擇方案 C：超時自動清理（延遲刪除 + 定期掃描）
    機制：
    - 追蹤最後活動時間（lastActive）
    - 定期掃描（如每分鐘）
@@ -427,7 +427,7 @@ func cleanupLoop(manager *RoomManager) {
 
 ---
 
-## 📈 擴展性分析
+## 擴展性分析
 
 ### 當前架構容量
 
@@ -450,9 +450,9 @@ func cleanupLoop(manager *RoomManager) {
 
 ```
 瓶頸分析：
-❌ 內存：10,000 × 2KB + 40,000 × 4KB = 180 MB（仍可接受）
-❌ 單機限制：無法水平擴展（內存存儲）
-❌ 廣播性能：100,000 msg/s（接近 goroutine 調度極限）
+內存：10,000 × 2KB + 40,000 × 4KB = 180 MB（仍可接受）
+單機限制：無法水平擴展（內存存儲）
+廣播性能：100,000 msg/s（接近 goroutine 調度極限）
 
 方案 1：垂直擴展（增強單機）
 - 增加 CPU、內存
@@ -534,9 +534,9 @@ Load Balancer (L7, WebSocket aware)
 
 ---
 
-## 🔧 實現範圍標註
+## 實現範圍標註
 
-### ✅ 已實現（核心教學內容）
+### 已實現（核心教學內容）
 
 | 功能 | 檔案 | 教學重點 |
 |------|------|----------|
@@ -546,7 +546,7 @@ Load Balancer (L7, WebSocket aware)
 | **超時清理** | `room.go:461-484` | 資源管理、過期檢測 |
 | **TOCTOU 修復** | `room.go:133-134, 455-458, 528-532` | atomic.Bool、競態條件 |
 
-### ⚠️ 教學簡化（未實現）
+### 教學簡化（未實現）
 
 | 功能 | 原因 | 生產環境建議 |
 |------|------|-------------|
@@ -556,7 +556,7 @@ Load Balancer (L7, WebSocket aware)
 | **監控指標** | 聚焦業務邏輯 | Prometheus、廣播延遲分位數 |
 | **消息順序保證** | 增加複雜度 | 序列號、Kafka 分區 |
 
-### 🚀 生產環境額外需要
+### 生產環境額外需要
 
 ```
 1. 連接管理
@@ -591,7 +591,7 @@ Load Balancer (L7, WebSocket aware)
 
 ---
 
-## 💡 關鍵設計原則總結
+## 關鍵設計原則總結
 
 ### 1. 有限狀態機（清晰的業務邏輯）
 ```
@@ -635,7 +635,7 @@ lastActive + 定期掃描 → 自動刪除過期房間
 
 ---
 
-## 📚 延伸閱讀
+## 延伸閱讀
 
 ### 相關系統設計問題
 - 如何設計一個**聊天室系統**？（類似問題）
@@ -656,7 +656,7 @@ lastActive + 定期掃描 → 自動刪除過期房間
 
 ---
 
-## 🎯 總結
+## 總結
 
 Room Management 展示了**實時系統**的經典設計模式：
 

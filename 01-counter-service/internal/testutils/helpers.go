@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/koopa0/system-design/exercise-1/internal"
+	"github.com/koopa0/system-design/01-counter-service/internal"
 	"github.com/stretchr/testify/require"
 )
 

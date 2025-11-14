@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
-	"github.com/Koopa0/system-design/05-distributed-cache/internal/cache"
-	"github.com/Koopa0/system-design/05-distributed-cache/internal/strategy"
+	"github.com/koopa0/system-design/05-distributed-cache/internal/cache"
+	"github.com/koopa0/system-design/05-distributed-cache/internal/strategy"
 )
 
 // MockDataStore 模擬資料庫（用於展示快取策略）。

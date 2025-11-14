@@ -1,4 +1,4 @@
-module github.com/Koopa0/system-design/04-rate-limiter
+module github.com/koopa0/system-design/04-rate-limiter
 
 go 1.24.7
 

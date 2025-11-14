@@ -2,7 +2,7 @@
 
 > 從基礎到高級，從簡單到複雜的系統設計學習路徑
 
-## 📊 總覽
+## 總覽
 
 本路線圖涵蓋 **60+ 個系統設計案例**，按難度和主題分為 8 個階段。建議按順序學習，每個階段都建立在前一階段的基礎上。
 
@@ -20,8 +20,8 @@
 
 > 所有大型系統的基石，必須熟練掌握
 
-### 01. Counter Service ✅
-- **難度**: ⭐️
+### 01. Counter Service
+- **難度**: 1 星
 - **時間**: 1-2 週
 - **核心概念**: Redis、PostgreSQL、降級機制、批量優化
 - **學習重點**:
@@ -37,8 +37,8 @@
 - **ByteByteGo**: Design a Metrics Monitoring System
 - **DDIA**: Chapter 5 - Replication
 
-### 02. Room Management ✅
-- **難度**: ⭐️⭐️
+### 02. Room Management
+- **難度**: 2 星
 - **時間**: 2-3 週
 - **核心概念**: WebSocket、狀態機、並發控制、事件驅動
 - **學習重點**:
@@ -54,8 +54,8 @@
 - **ByteByteGo**: Design a Chat System (部分)
 - **相關**: WebRTC、CRDT
 
-### 03. URL Shortener 🚧
-- **難度**: ⭐️
+### 03. URL Shortener
+- **難度**: 1 星
 - **時間**: 1-2 週
 - **核心概念**: 分布式 ID、Base62 編碼、快取策略
 - **學習重點**:
@@ -67,12 +67,12 @@
   - 短網址服務（bit.ly）
   - QR Code 生成
   - 追蹤鏈接（Marketing）
-- **ByteByteGo**: Design a URL Shortener ✅
-- **Grokking**: Chapter 2 ✅
+- **ByteByteGo**: Design a URL Shortener
+- **Grokking**: Chapter 2
 - **DDIA**: Chapter 6 - Partitioning
 
 ### 04. Rate Limiter
-- **難度**: ⭐️⭐️
+- **難度**: 2 星
 - **時間**: 1-2 週
 - **核心概念**: 限流算法、分布式限流、Redis Lua
 - **學習重點**:
@@ -85,11 +85,11 @@
   - 防止 DDoS 攻擊
   - 保護下游服務
   - 公平性保證
-- **ByteByteGo**: Design a Rate Limiter ✅
+- **ByteByteGo**: Design a Rate Limiter
 - **DDIA**: Chapter 11 - Stream Processing
 
 ### 05. Distributed Cache
-- **難度**: ⭐️⭐️
+- **難度**: 2 星
 - **時間**: 2-3 週
 - **核心概念**: LRU/LFU、一致性哈希、快取策略
 - **學習重點**:
@@ -101,11 +101,11 @@
   - Redis Cluster
   - Memcached
   - CDN
-- **ByteByteGo**: Design a Key-Value Store ✅
+- **ByteByteGo**: Design a Key-Value Store 
 - **DDIA**: Chapter 5 - Replication
 
 ### 06. Unique ID Generator
-- **難度**: ⭐️⭐️
+- **難度**: 2 星
 - **時間**: 1 週
 - **核心概念**: Snowflake、時鐘同步、分布式協調
 - **學習重點**:
@@ -117,7 +117,7 @@
   - 訂單號生成
   - 用戶 ID
   - 分布式追蹤（Trace ID）
-- **ByteByteGo**: Design a Unique ID Generator ✅
+- **ByteByteGo**: Design a Unique ID Generator
 
 ---
 
@@ -126,7 +126,7 @@
 > 處理海量數據、搜尋、分析
 
 ### 10. Search Autocomplete
-- **難度**: ⭐️⭐️
+- **難度**: 2 星
 - **時間**: 2-3 週
 - **核心概念**: Trie 樹、前綴匹配、Elasticsearch
 - **學習重點**:
@@ -138,11 +138,11 @@
   - Google 搜尋建議
   - IDE 代碼補全
   - 命令行 Autocomplete
-- **ByteByteGo**: Design a Search Autocomplete ✅
+- **ByteByteGo**: Design a Search Autocomplete
 - **DDIA**: Chapter 3 - Storage and Retrieval
 
 ### 11. Web Crawler
-- **難度**: ⭐️⭐️⭐️
+- **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: 分布式爬蟲、URL Frontier、去重、禮貌性
 - **學習重點**:
@@ -154,11 +154,11 @@
   - Google 爬蟲
   - 價格監控
   - 輿情分析
-- **ByteByteGo**: Design a Web Crawler ✅
+- **ByteByteGo**: Design a Web Crawler
 - **DDIA**: Chapter 10 - Batch Processing
 
 ### 12. Distributed KV Store
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: CAP、Dynamo、向量時鐘、Gossip 協議
 - **學習重點**:
@@ -170,11 +170,11 @@
   - Amazon Dynamo
   - Cassandra
   - Riak
-- **ByteByteGo**: Design a Key-Value Store ✅
-- **DDIA**: Chapter 5, 9 ✅
+- **ByteByteGo**: Design a Key-Value Store
+- **DDIA**: Chapter 5, 9
 
 ### 13. Metrics Monitoring
-- **難度**: ⭐️⭐️⭐️
+- **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: 時序數據、聚合、Prometheus、InfluxDB
 - **學習重點**:
@@ -186,11 +186,11 @@
   - Prometheus + Grafana
   - DataDog
   - New Relic
-- **ByteByteGo**: Design a Metrics Monitoring System ✅
+- **ByteByteGo**: Design a Metrics Monitoring System
 - **DDIA**: Chapter 3 - Storage
 
 ### 14. Analytics Platform
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: OLAP、數據倉庫、ClickHouse、Druid
 - **學習重點**:
@@ -202,7 +202,7 @@
   - Google Analytics
   - 商業智能（BI）
   - 用戶行為分析
-- **DDIA**: Chapter 10 - Batch Processing ✅
+- **DDIA**: Chapter 10 - Batch Processing
 
 ---
 
@@ -211,7 +211,7 @@
 > 高並發、實時性、社交關係
 
 ### 20. News Feed (Twitter/Facebook)
-- **難度**: ⭐️⭐️⭐️
+- **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: Feed 生成、推拉模型、Fanout
 - **學習重點**:
@@ -223,11 +223,11 @@
   - Twitter 時間線
   - Facebook News Feed
   - Instagram Feed
-- **ByteByteGo**: Design a News Feed System ✅
+- **ByteByteGo**: Design a News Feed System
 - **DDIA**: Chapter 11 - Stream Processing
 
 ### 21. Chat System (WhatsApp/WeChat)
-- **難度**: ⭐️⭐️⭐️
+- **難度**: 3 星
 - **時間**: 4-5 週
 - **核心概念**: 1對1、群聊、離線訊息、已讀回執
 - **學習重點**:
@@ -239,11 +239,11 @@
   - WhatsApp
   - Telegram
   - Slack
-- **ByteByteGo**: Design a Chat System ✅
+- **ByteByteGo**: Design a Chat System
 - **擴展**: 端到端加密（Signal Protocol）
 
 ### 22. Notification Service
-- **難度**: ⭐️⭐️
+- **難度**: 2 星
 - **時間**: 2-3 週
 - **核心概念**: 多渠道推送、訂閱、去重、優先級
 - **學習重點**:
@@ -255,10 +255,10 @@
   - Firebase Cloud Messaging
   - AWS SNS
   - 運營通知系統
-- **ByteByteGo**: Design a Notification System ✅
+- **ByteByteGo**: Design a Notification System
 
 ### 23. Instagram
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 圖片上傳、CDN、圖片處理、社交圖譜
 - **學習重點**:
@@ -273,7 +273,7 @@
 - **相關**: Feed 系統（Phase 20）
 
 ### 24. Live Comment System
-- **難度**: ⭐️⭐️⭐️
+- **難度**: 3 星
 - **時間**: 2-3 週
 - **核心概念**: 實時評論、彈幕、高並發寫入
 - **學習重點**:
@@ -294,7 +294,7 @@
 > 大文件、串流、轉碼
 
 ### 30. YouTube
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 影片上傳、轉碼、CDN、推薦算法
 - **學習重點**:
@@ -306,11 +306,11 @@
   - YouTube
   - TikTok
   - 影片平台
-- **ByteByteGo**: Design YouTube ✅
+- **ByteByteGo**: Design YouTube
 - **DDIA**: Chapter 10 - Batch Processing
 
 ### 31. Netflix
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 串流、自適應碼率、預加載
 - **學習重點**:
@@ -322,10 +322,10 @@
   - Netflix
   - Disney+
   - 串流平台
-- **ByteByteGo**: Design Netflix ✅
+- **ByteByteGo**: Design Netflix
 
 ### 32. Spotify
-- **難度**: ⭐️⭐️⭐️
+- **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: 音樂串流、播放列表、推薦、社交
 - **學習重點**:
@@ -337,10 +337,10 @@
   - Spotify
   - Apple Music
   - 音樂平台
-- **ByteByteGo**: Design Spotify ✅
+- **ByteByteGo**: Design Spotify
 
 ### 33. Google Drive
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 文件存儲、同步、版本控制、衝突解決
 - **學習重點**:
@@ -352,7 +352,7 @@
   - Google Drive
   - Dropbox
   - OneDrive
-- **ByteByteGo**: Design Google Drive ✅
+- **ByteByteGo**: Design Google Drive
 - **相關**: CRDT 論文
 
 ---
@@ -362,7 +362,7 @@
 > 地理空間、路線規劃、實時追蹤
 
 ### 40. Uber/Lyft
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 司機匹配、路徑規劃、實時追蹤、動態定價
 - **學習重點**:
@@ -374,10 +374,10 @@
   - Uber
   - Lyft
   - 叫車服務
-- **ByteByteGo**: Design Uber ✅
+- **ByteByteGo**: Design Uber
 
 ### 41. Google Maps
-- **難度**: ⭐️⭐️⭐️⭐️⭐️
+- **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: 地圖渲染、路線規劃、導航、路況預測
 - **學習重點**:
@@ -389,10 +389,10 @@
   - Google Maps
   - 高德地圖
   - 導航系統
-- **ByteByteGo**: Design Google Maps ✅
+- **ByteByteGo**: Design Google Maps
 
 ### 42. Yelp (附近的餐廳)
-- **難度**: ⭐️⭐️⭐️
+- **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: 地理空間索引、QuadTree、範圍查詢
 - **學習重點**:
@@ -404,10 +404,10 @@
   - Yelp
   - 大眾點評
   - 附近功能
-- **ByteByteGo**: Design Yelp ✅
+- **ByteByteGo**: Design Yelp
 
 ### 43. Food Delivery (UberEats)
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 訂單匹配、調度優化、多點取送
 - **學習重點**:
@@ -427,7 +427,7 @@
 > 高並發交易、庫存、支付
 
 ### 50. Flash Sale (秒殺系統)
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 庫存扣減、超賣問題、削峰填谷
 - **學習重點**:
@@ -439,11 +439,11 @@
   - 淘寶雙11
   - 小米搶購
   - 演唱會搶票
-- **ByteByteGo**: Design a Flash Sale System ✅
+- **ByteByteGo**: Design a Flash Sale System
 - **DDIA**: Chapter 7 - Transactions
 
 ### 51. Payment System
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 雙寫、冪等性、對帳、分布式事務
 - **學習重點**:
@@ -455,11 +455,11 @@
   - 支付寶
   - PayPal
   - Stripe
-- **ByteByteGo**: Design a Payment System ✅
+- **ByteByteGo**: Design a Payment System
 - **DDIA**: Chapter 7, 9 - Transactions
 
 ### 52. Stock Exchange
-- **難度**: ⭐️⭐️⭐️⭐️⭐️
+- **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: 訂單匹配、撮合引擎、低延遲
 - **學習重點**:
@@ -471,10 +471,10 @@
   - 證券交易所
   - 加密貨幣交易所
   - 高頻交易
-- **ByteByteGo**: Design a Stock Exchange ✅
+- **ByteByteGo**: Design a Stock Exchange
 
 ### 53. Hotel Reservation
-- **難度**: ⭐️⭐️⭐️
+- **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: 分布式鎖、庫存管理、超賣問題
 - **學習重點**:
@@ -489,12 +489,12 @@
 
 ---
 
-## Phase 7: AI 平台 (AI Platforms) 🔥
+## Phase 7: AI 平台 (AI Platforms)
 
 > 新興的 AI 系統設計
 
 ### 60. ChatGPT-like System
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: LLM API、流式輸出、上下文管理、Token 計費
 - **學習重點**:
@@ -506,11 +506,11 @@
   - ChatGPT
   - Claude
   - 對話式 AI
-- **ByteByteGo**: Design ChatGPT ✅
+- **ByteByteGo**: Design ChatGPT
 - **相關**: Transformer 架構
 
 ### 61. AI Agent Platform
-- **難度**: ⭐️⭐️⭐️⭐️⭐️
+- **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: Agent 編排、Tool Calling、狀態管理、多 Agent 協作
 - **學習重點**:
@@ -522,11 +522,11 @@
   - LangChain
   - AutoGPT
   - Agent 平台
-- **ByteByteGo**: Design an AI Agent Platform ✅（新）
+- **ByteByteGo**: Design an AI Agent Platform（新）
 - **相關**: LangChain、LlamaIndex
 
 ### 62. RAG System (檢索增強生成)
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 向量數據庫、Embedding、語義搜尋、上下文注入
 - **學習重點**:
@@ -541,7 +541,7 @@
 - **技術**: Pinecone、LlamaIndex、FAISS
 
 ### 63. Model Training Platform
-- **難度**: ⭐️⭐️⭐️⭐️⭐️
+- **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: 分布式訓練、資源調度、GPU 集群、模型版本管理
 - **學習重點**:
@@ -556,7 +556,7 @@
 - **相關**: Kubeflow、Ray
 
 ### 64. Recommendation Engine
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 協同過濾、內容推薦、特徵工程、實時推薦
 - **學習重點**:
@@ -568,7 +568,7 @@
   - YouTube 推薦
   - Amazon 商品推薦
   - Netflix 影片推薦
-- **ByteByteGo**: Design a Recommendation System ✅
+- **ByteByteGo**: Design a Recommendation System
 - **DDIA**: Chapter 10 - Batch Processing
 
 ---
@@ -578,7 +578,7 @@
 > 分布式系統核心理論
 
 ### 70. Distributed Transaction
-- **難度**: ⭐️⭐️⭐️⭐️⭐️
+- **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: 2PC、Saga、TCC、最終一致性
 - **學習重點**:
@@ -590,11 +590,11 @@
   - 電商訂單
   - 微服務事務
   - 跨數據庫一致性
-- **DDIA**: Chapter 7, 9 - Transactions ✅
+- **DDIA**: Chapter 7, 9 - Transactions
 - **論文**: Saga（1987）
 
 ### 71. Consensus Algorithm (Raft/Paxos)
-- **難度**: ⭐️⭐️⭐️⭐️⭐️
+- **難度**: 5 星
 - **時間**: 8-10 週
 - **核心概念**: 分布式共識、Leader Election、日誌複製
 - **學習重點**:
@@ -606,11 +606,11 @@
   - etcd（Raft）
   - ZooKeeper（Zab）
   - Consul
-- **DDIA**: Chapter 9 - Consistency and Consensus ✅
+- **DDIA**: Chapter 9 - Consistency and Consensus
 - **論文**: Raft（2014）、Paxos（1998）
 
 ### 72. Time-Series Database
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 時序數據壓縮、聚合、查詢優化
 - **學習重點**:
@@ -625,7 +625,7 @@
 - **論文**: Gorilla（Facebook, 2015）
 
 ### 73. Graph Database
-- **難度**: ⭐️⭐️⭐️⭐️
+- **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 圖遍歷、社交網絡分析、最短路徑
 - **學習重點**:
@@ -637,11 +637,11 @@
   - Neo4j
   - 社交網絡分析
   - 知識圖譜
-- **DDIA**: Chapter 2 - Data Models ✅
+- **DDIA**: Chapter 2 - Data Models
 
 ---
 
-## 📊 學習策略建議
+## 學習策略建議
 
 ### 初學者（0-6 個月）
 
@@ -690,7 +690,7 @@
 
 ---
 
-## 📚 配合閱讀材料
+## 配合閱讀材料
 
 | 階段 | DDIA 章節 | ByteByteGo 案例 | Grokking 章節 |
 |------|-----------|----------------|--------------|
@@ -705,7 +705,7 @@
 
 ---
 
-## 🎯 面試準備檢查清單
+## 面試準備檢查清單
 
 準備 Google 等大廠面試時，確保你能：
 
@@ -720,4 +720,4 @@
 
 ---
 
-**祝你學習順利！每完成一個案例都是一次巨大的進步！💪**
+**祝你學習順利！每完成一個案例都是一次巨大的進步！**

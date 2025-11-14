@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/koopa0/system-design/exercise-1/internal/sqlc"
+	"github.com/koopa0/system-design/01-counter-service/internal/sqlc"
 	"github.com/redis/go-redis/v9"
 )
 
