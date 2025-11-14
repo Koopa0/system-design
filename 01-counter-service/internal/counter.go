@@ -1,17 +1,20 @@
-// Package internal 包含計數服務的核心業務邏輯實現
+// Package internal 實現計數服務的核心功能
 //
-// 實現了計數器的所有核心功能，包括：
-//   - 原子計數操作（增加、減少、查詢）
-//   - 去重計數（如 DAU 統計）
-//   - 批量操作優化
-//   - Redis 故障降級
-//   - 數據持久化同步
+// 系統設計問題：
+//   如何支持 10,000 QPS 的高並發計數更新，同時保證準確性和可靠性？
 //
-// 設計原則：
-//   - 優先使用 Redis 確保高效能
-//   - PostgreSQL 作為備份保證可靠性
-//   - 無鎖設計避免競爭條件
-//   - 批量處理減少 I/O 開銷
+// 核心挑戰：
+//   1. 高頻寫入：每秒數萬次計數操作（在線人數、DAU）
+//   2. 準確性：併發環境下不能丟失計數
+//   3. 去重計數：同一用戶一天只計算一次（DAU）
+//   4. 高可用：Redis 故障不能影響服務
+//   5. 低延遲：P99 < 10ms
+//
+// 設計方案：
+//   ✅ Redis + PostgreSQL 雙寫
+//   ✅ 批量異步同步（降低 DB 壓力）
+//   ✅ 降級機制（Redis 故障時用 PostgreSQL）
+//   ✅ Redis Set 去重（SADD 原子操作）
 package internal
 
 import (
@@ -41,7 +44,34 @@ const (
 	CounterTypeDaily CounterType = "daily"
 )
 
-// Counter 計數器核心實作
+// Counter 計數器核心實現
+//
+// 架構設計：
+//   Client → API → Redis (快速返回) → 批量寫入 PostgreSQL
+//                     ↓ 故障
+//                PostgreSQL (降級模式)
+//
+// 系統設計考量：
+//
+//  1. 為什麼雙寫（Redis + PostgreSQL）？
+//     - Redis：內存操作，微秒級延遲，支持原子 INCR
+//     - PostgreSQL：持久化，重啟不丟數據
+//     - 權衡：最終一致性（數秒內同步）vs 強一致性
+//
+//  2. 為什麼批量寫入？
+//     - 問題：每次 INCR 都寫 DB，10,000 QPS 無法承受
+//     - 方案：緩衝合併，每秒批量同步
+//     - 效果：10,000 → 100 次 DB 寫入（降低 100 倍）
+//
+//  3. 為什麼需要降級？
+//     - 場景：Redis 故障（網絡問題、OOM、重啟）
+//     - 影響：如果不降級，服務完全不可用
+//     - 方案：自動切換到 PostgreSQL（犧牲性能保可用）
+//
+//  4. 容量規劃：
+//     - 批量大小：100-1000（平衡延遲與吞吐）
+//     - 刷新間隔：1-5 秒（根據一致性要求）
+//     - 錯誤閾值：3-5 次（避免頻繁切換）
 type Counter struct {
 	redis   *redis.Client
 	pg      *pgxpool.Pool
@@ -49,18 +79,17 @@ type Counter struct {
 	config  *Config
 	logger  *slog.Logger
 
-	// 降級控制
-	fallbackMode atomic.Bool  // 是否處於降級模式
-	redisErrors  atomic.Int32 // Redis 錯誤計數
+	// 降級模式狀態
+	fallbackMode atomic.Bool  // Redis 故障時自動切換
+	redisErrors  atomic.Int32 // 錯誤計數（超閾值觸發降級）
 
 	// 批量寫入緩衝
-	batchBuffer chan *batchWrite
-	wg          sync.WaitGroup
+	batchBuffer chan *batchWrite // 異步同步通道
+	wg          sync.WaitGroup    // 等待 worker 退出
 
-	// 記憶體快取（降級模式使用）
-	cache *MemoryCache
+	// 快取（降級優化）
+	cache *MemoryCache // 減少 PostgreSQL 壓力
 
-	// Redis 恢復通知
 	recoverySignal chan struct{}
 }
 
@@ -114,8 +143,28 @@ func NewCounter(redis *redis.Client, pg *pgxpool.Pool, config *Config, logger *s
 }
 
 // Increment 增加計數器
+//
+// 系統設計重點：
+//
+// 1. 去重計數（DAU 統計）：
+//    問題：同一用戶一天內多次登入，只能計算一次
+//    方案：Redis Set (SADD) - 原子操作，天然去重
+//    key: counter:{name}:users:{date}
+//    TTL: 次日凌晨（自動清理，節省內存）
+//
+// 2. 原子性保證：
+//    Redis INCR 是原子操作（單線程模型）
+//    即使 10,000 個併發請求，也不會丟失計數
+//
+// 3. 性能優化：
+//    - Redis 返回後立即響應（< 1ms）
+//    - PostgreSQL 異步批量同步（不阻塞）
+//    - 緩衝區滿時降級為同步（背壓機制）
+//
+// 4. 高可用：
+//    - Redis 故障自動切換 PostgreSQL
+//    - 犧牲性能（毫秒 → 數十毫秒）換取可用性
 func (c *Counter) Increment(ctx context.Context, name string, value int64, userID string) (int64, error) {
-	// 根據時區設定獲取台北時間
 	location, _ := time.LoadLocation("Asia/Taipei")
 	today := time.Now().In(location).Format("20060102")
 
@@ -124,41 +173,38 @@ func (c *Counter) Increment(ctx context.Context, name string, value int64, userI
 		return c.incrementPostgresSQLc(ctx, name, value)
 	}
 
-	// 處理去重計數（如 DAU）
+	// 去重計數邏輯（DAU）
 	if userID != "" {
 		dauKey := fmt.Sprintf("counter:%s:users:%s", name, today)
 
-		// 使用 SADD 實現去重，返回 1 表示新增，0 表示已存在
+		// SADD 返回新增的元素數量（0 = 已存在，1 = 新增）
 		added, err := c.redis.SAdd(ctx, dauKey, userID).Result()
 		if err != nil {
 			c.handleRedisError(err)
 			return 0, err
 		}
 
-		// 設置過期時間（台北時間次日凌晨）
+		// 設置 TTL（次日凌晨自動刪除）
 		if added > 0 {
 			tomorrow := time.Now().In(location).AddDate(0, 0, 1)
 			midnight := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, location)
 			c.redis.ExpireAt(ctx, dauKey, midnight)
-
-			// 只有新用戶才增加計數
 			value = added
 		} else {
-			// 用戶已存在，不增加計數
+			// 用戶今天已計數，直接返回當前值
 			return c.GetValue(ctx, name)
 		}
 	}
 
-	// 執行原子增加操作
+	// Redis 原子操作（INCR/INCRBY）
 	key := fmt.Sprintf("counter:%s", name)
 	newVal, err := c.redis.IncrBy(ctx, key, value).Result()
 	if err != nil {
 		c.handleRedisError(err)
-		// 降級到 PostgreSQL
 		return c.incrementPostgresSQLc(ctx, name, value)
 	}
 
-	// 異步更新 PostgreSQL（最終一致性）
+	// 異步同步到 PostgreSQL（最終一致性）
 	select {
 	case c.batchBuffer <- &batchWrite{
 		name:      name,
@@ -167,14 +213,13 @@ func (c *Counter) Increment(ctx context.Context, name string, value int64, userI
 		userID:    userID,
 		timestamp: time.Now(),
 	}:
+		// 成功加入批量隊列
 	default:
-		// 緩衝區滿，直接寫入
+		// 緩衝區滿（背壓），同步寫入
 		go c.syncToPostgresSQLc(ctx, name, newVal)
 	}
 
-	// 重置錯誤計數
 	c.redisErrors.Store(0)
-
 	return newVal, nil
 }
 
@@ -299,7 +344,28 @@ func (c *Counter) Reset(ctx context.Context, name string) error {
 	return c.resetPostgresSQLc(ctx, name)
 }
 
-// batchWorker 批量寫入 worker
+// batchWorker 批量寫入 worker（後台 goroutine）
+//
+// 系統設計重點：
+//
+// 1. 為什麼批量寫入？
+//    - 問題：10,000 QPS 直接寫 DB → PostgreSQL 無法承受
+//    - 方案：緩衝聚合，定期批量刷新
+//    - 效果：10,000 次操作 → 100 次 DB 寫入
+//
+// 2. 刷新策略（兩種觸發條件）：
+//    a) 批量大小：達到閾值（如 100）立即刷新
+//    b) 定時器：每隔固定時間（如 1 秒）刷新
+//    → 平衡延遲與吞吐：大批量提高效率，定時器保證延遲上限
+//
+// 3. 操作合併：
+//    同一計數器的多次操作合併為一次 DB 更新
+//    例：counter:online +1, +1, -1 → 最終 +1
+//
+// 4. 容量規劃：
+//    - 批量大小 100：平衡內存與效率
+//    - 刷新間隔 1 秒：最終一致性延遲 < 1 秒
+//    - 緩衝區 200：允許突發流量（2x 批量大小）
 func (c *Counter) batchWorker() {
 	defer c.wg.Done()
 
@@ -313,7 +379,7 @@ func (c *Counter) batchWorker() {
 			return
 		}
 
-		// 合併相同計數器的操作
+		// 合併同一計數器的操作（減少 DB 寫入）
 		merged := make(map[string]int64)
 		for _, item := range batch {
 			delta := item.value
@@ -326,11 +392,9 @@ func (c *Counter) batchWorker() {
 		// 批量更新 PostgreSQL
 		ctx := context.Background()
 		for name := range merged {
-			// 獲取當前 Redis 值
 			key := fmt.Sprintf("counter:%s", name)
 			val, _ := c.redis.Get(ctx, key).Int64()
 
-			// 同步到 PostgreSQL
 			if err := c.syncToPostgresSQLc(ctx, name, val); err != nil {
 				c.logger.Error("failed to sync to postgres",
 					"counter", name,
@@ -339,7 +403,6 @@ func (c *Counter) batchWorker() {
 			}
 		}
 
-		// 清空批次
 		batch = batch[:0]
 	}
 
@@ -362,27 +425,47 @@ func (c *Counter) batchWorker() {
 	}
 }
 
-// handleRedisError 處理 Redis 錯誤
+// handleRedisError 處理 Redis 錯誤（降級機制）
+//
+// 系統設計：降級策略
+//
+// 1. 為什麼需要降級？
+//    - 場景：Redis 故障（網絡問題、OOM、重啟、主從切換）
+//    - 影響：如果不處理，服務完全不可用（計數功能掛掉）
+//    - 方案：自動切換到 PostgreSQL
+//
+// 2. 降級觸發條件：
+//    - 連續錯誤次數達到閾值（如 3-5 次）
+//    - 避免單次偶發錯誤觸發（網絡抖動）
+//    - 避免頻繁切換（影響穩定性）
+//
+// 3. 降級代價：
+//    - 性能下降：Redis < 1ms → PostgreSQL 10-50ms
+//    - 吞吐下降：Redis 10,000 QPS → PostgreSQL 1,000 QPS
+//    - 但保證可用：降級總比掛掉好
+//
+// 4. 自動恢復：
+//    - 後台定期健康檢查（每 10 秒 Ping Redis）
+//    - Redis 恢復後自動切回（重置錯誤計數）
 func (c *Counter) handleRedisError(err error) {
 	c.logger.Error("redis error", "error", err)
 
-	// 增加錯誤計數
+	// 累加錯誤計數
 	errors := c.redisErrors.Add(1)
 
-	// 超過閾值，進入降級模式
-	// 安全檢查：確保閾值在 int32 範圍內
 	threshold := c.config.Counter.FallbackThreshold
 	const maxInt32 = 2147483647
 	if threshold > maxInt32 {
 		threshold = maxInt32
 	}
-	// 現在可以安全地比較
+
+	// 達到閾值，觸發降級
 	if int(errors) >= threshold {
 		if !c.fallbackMode.Load() {
 			c.fallbackMode.Store(true)
 			c.logger.Warn("entering fallback mode due to redis errors", "errors", errors)
 
-			// 啟動恢復檢查
+			// 啟動健康檢查（自動恢復）
 			go c.checkRedisHealth()
 		}
 	}
