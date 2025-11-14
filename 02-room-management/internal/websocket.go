@@ -10,7 +10,37 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// 系統設計問題：
+//   如何實現多人遊戲的實時狀態同步？
+//
+// 核心挑戰：
+//   1. 實時通信：房間狀態變更需要立即推送給所有玩家
+//   2. 連接管理：處理斷線、重連、多設備登入
+//   3. 心跳機制：檢測死連接（網絡異常、客戶端崩潰）
+//   4. 並發廣播：同時向多個客戶端發送消息
+//
+// 設計方案：
+//   ✅ WebSocket - 全雙工通信（低延遲、服務器推送）
+//   ✅ Hub 模式 - 集中管理所有連接
+//   ✅ Ping/Pong 心跳 - 檢測死連接（54s/60s）
+//   ✅ 緩衝 channel - 異步發送（不阻塞）
+
 // WebSocketHub WebSocket 連接中心
+//
+// Hub 模式設計：
+//   - 集中管理所有房間的所有連接
+//   - 支持房間級別的廣播（只發給該房間的玩家）
+//   - 處理連接註冊/註銷
+//   - 監聽房間事件並推送
+//
+// 系統設計考量：
+//   1. 連接映射：map[roomID]map[playerID]*Connection
+//      - 兩層 map：快速定位房間和玩家
+//      - 支持房間廣播（遍歷房間的所有連接）
+//
+//   2. 並發安全：RWMutex
+//      - 讀多寫少：廣播頻繁（讀鎖），註冊/註銷少（寫鎖）
+//      - 避免死鎖：鎖順序一致
 type WebSocketHub struct {
 	manager     *Manager
 	logger      *slog.Logger
@@ -253,16 +283,40 @@ func (hub *WebSocketHub) Stop() {
 }
 
 // readPump 讀取客戶端消息
+//
+// 系統設計：心跳機制（讀取端）
+//
+// 1. 為什麼需要心跳？
+//    問題：客戶端異常斷線（網絡故障、瀏覽器崩潰）時，服務器無法察覺
+//    影響：死連接佔用資源（內存、goroutine）
+//    方案：定期檢查活性（Ping/Pong）
+//
+// 2. 超時設置：60 秒
+//    - 如果 60 秒內沒有收到任何消息（包括 Pong），關閉連接
+//    - 為什麼 60 秒？配合 writePump 的 54 秒 Ping（留 6 秒余量）
+//
+// 3. Pong 處理器：
+//    - 收到 Pong → 重置超時時間（延長 60 秒）
+//    - 更新 LastPing（用於監控）
+//
+// 4. 時間配置原理：
+//    writePump 54s Ping → 網絡傳輸 < 6s → readPump 60s 超時
+//    ↓ 正常情況
+//    每 54 秒重置一次超時（持續連接）
+//    ↓ 異常情況
+//    54s 未收到 Pong → 60s 超時 → 關閉連接
 func (c *Connection) readPump() {
 	defer func() {
 		c.Hub.unregister(c)
 		c.Conn.Close()
 	}()
 
-	// 設置讀取參數
+	// 設置讀取超時（60 秒）
 	if err := c.Conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
 		c.Hub.logger.Error("設置讀取期限失敗", "error", err)
 	}
+
+	// Pong 處理器（收到 Pong 重置超時）
 	c.Conn.SetPongHandler(func(string) error {
 		if err := c.Conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
 			c.Hub.logger.Error("設置讀取期限失敗", "error", err)
@@ -294,6 +348,30 @@ func (c *Connection) readPump() {
 }
 
 // writePump 寫入消息到客戶端
+//
+// 系統設計：心跳機制（發送端）
+//
+// 1. Ping 間隔：54 秒
+//    問題：為什麼是 54 秒而非整數（如 50 秒、60 秒）？
+//    答案：避開常見的超時閾值
+//      - 很多代理服務器默認 60 秒超時
+//      - 54 秒確保在超時前發送 Ping
+//      - 留 6 秒余量（網絡延遲 + 處理時間）
+//
+// 2. 發送流程：
+//    - 定時器觸發（54 秒）→ 發送 Ping
+//    - 客戶端收到 Ping → 自動回覆 Pong
+//    - 服務器收到 Pong → readPump 重置超時
+//
+// 3. 異步發送：
+//    - 使用 channel（Send）緩衝消息
+//    - 不阻塞業務邏輯（房間狀態變更可立即發送事件）
+//    - 緩衝區滿時跳過（避免慢客戶端拖累整個房間）
+//
+// 4. 為什麼 Ping/Pong 而非應用層心跳？
+//    - WebSocket 協議原生支持（更高效）
+//    - 自動處理（客戶端瀏覽器自動回覆 Pong）
+//    - 不佔用應用層帶寬（控制幀，非數據幀）
 func (c *Connection) writePump() {
 	ticker := time.NewTicker(54 * time.Second)
 	defer func() {
