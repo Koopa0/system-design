@@ -308,3 +308,139 @@
 5. ✅ 會遇到什麼瓶頸？
 6. ✅ 如何監控和調優？
 7. ✅ 面試中如何展開討論？
+
+---
+
+## 📚 參考來源
+
+本專案的系統設計方法論和最佳實踐參考以下優秀資源：
+
+### 核心參考
+
+**1. [ByteByteGo](https://bytebytego.com/)**
+   - 系統設計視覺化教學
+   - Alex Xu 的《System Design Interview》系列
+   - 涵蓋：URL Shortener、Rate Limiter、Distributed Cache 等經典案例
+   - 本專案採用：視覺化設計流程、容量估算方法
+
+**2. [Grokking the System Design Interview](https://www.designgurus.io/course/grokking-the-system-design-interview)**
+   - 系統設計面試準備
+   - 涵蓋：15+ 真實系統設計案例
+   - 本專案採用：問題分析框架、設計模式
+
+**3. [Designing Data-Intensive Applications (DDIA)](https://dataintensive.net/)**
+   - Martin Kleppmann 的經典著作
+   - 深入探討：資料系統的基礎原理
+   - 本專案採用：CAP 理論、一致性模型、複製與分片策略
+
+### 補充資源
+
+**4. [System Design Primer](https://github.com/donnemartin/system-design-primer)**
+   - GitHub 開源學習資源
+   - 涵蓋：系統設計基礎概念、演算法、資料結構
+   - 適合：初學者建立系統化知識
+
+**5. [Awesome System Design](https://github.com/madd86/awesome-system-design)**
+   - 精選系統設計資源集合
+   - 包含：文章、影片、工具、案例研究
+
+**6. [High Scalability](http://highscalability.com/)**
+   - 真實公司的架構案例
+   - 如：Netflix、Uber、Instagram 的系統設計
+   - 學習：實戰經驗、架構演進
+
+**7. [Martin Fowler's Blog](https://martinfowler.com/)**
+   - 軟體架構大師的見解
+   - 涵蓋：微服務、事件驅動、API 設計
+   - 經典文章：《Patterns of Enterprise Application Architecture》
+
+**8. [AWS Architecture Blog](https://aws.amazon.com/blogs/architecture/)**
+   - 雲端架構最佳實踐
+   - 學習：Well-Architected Framework、參考架構
+
+**9. [Google SRE Book](https://sre.google/books/)**
+   - Google 的 SRE 實踐
+   - 涵蓋：可靠性、監控、容量規劃
+   - 免費在線閱讀
+
+**10. [Uber Engineering Blog](https://eng.uber.com/)**
+   - Uber 的技術實踐
+   - 案例：分布式追蹤、微服務、數據基礎設施
+
+### 學術論文
+
+**11. 經典分布式系統論文**
+   - [The Google File System](https://research.google/pubs/pub51/)
+   - [MapReduce](https://research.google/pubs/pub62/)
+   - [Bigtable](https://research.google/pubs/pub27898/)
+   - [Dynamo: Amazon's Highly Available Key-value Store](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf)
+   - [Kafka: a Distributed Messaging System](https://notes.stephenholiday.com/Kafka.pdf)
+
+### Go 語言特定
+
+**12. [Effective Go](https://go.dev/doc/effective_go)**
+   - Go 官方最佳實踐
+   - 本專案遵循的代碼風格基礎
+
+**13. [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)**
+   - Go 團隊的代碼審查指南
+
+**14. [Standard Library](https://pkg.go.dev/std)**
+   - Go 標準庫源碼
+   - 學習：優雅的 API 設計、錯誤處理、並發模式
+
+### 實踐建議
+
+閱讀這些資源時，建議：
+
+1. **先理解概念，再看實作**
+   - ByteByteGo：快速建立系統設計思維
+   - DDIA：深入理解底層原理
+   - 本專案：動手實踐，鞏固知識
+
+2. **對比不同來源的觀點**
+   - 同一問題可能有多種解法
+   - 理解每種方案的適用場景
+   - 培養權衡取捨的能力
+
+3. **關注真實案例**
+   - 公司技術博客（Uber、Netflix、Airbnb）
+   - 學習架構演進過程
+   - 理解為什麼改變設計
+
+4. **動手實踐**
+   - 純看不夠，要寫代碼
+   - 估算容量、設計 API、畫架構圖
+   - 本專案提供可運行的參考實作
+
+### 如何使用本專案
+
+1. **配合 ByteByteGo 學習**
+   - 先看 ByteByteGo 的 URL Shortener 章節
+   - 理解高層設計（High-Level Design）
+   - 再看本專案的代碼實作
+
+2. **對照 Grokking 的問題框架**
+   - 需求澄清（Requirements Clarification）
+   - 容量估算（Capacity Estimation）
+   - API 設計（API Design）
+   - 數據模型（Data Model）
+   - 高層設計（High-Level Design）
+   - 深入設計（Detailed Design）
+
+3. **結合 DDIA 深入理解**
+   - 第 5 章：複製（Replication）→ 主從複製
+   - 第 6 章：分片（Partitioning）→ 資料庫分片
+   - 第 7 章：事務（Transactions）→ 一致性保證
+   - 第 8 章：分布式系統的麻煩（Trouble with Distributed Systems）
+
+### 持續學習
+
+系統設計是一個持續演進的領域，建議：
+
+- 訂閱技術博客（如 Hacker News、Medium）
+- 關注開源項目（學習實際架構）
+- 參與技術討論（理解不同觀點）
+- 動手實踐（驗證理論）
+
+**記住**：系統設計沒有完美答案，只有適合場景的權衡取捨。
