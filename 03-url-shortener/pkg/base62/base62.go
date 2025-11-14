@@ -49,10 +49,11 @@ func init() {
 //   - 從低位到高位構建，最後反轉
 //
 // 範例：
-//   Encode(0)          → "0"
-//   Encode(61)         → "z"
-//   Encode(62)         → "10"
-//   Encode(123456789)  → "8M0kX"
+//
+//	Encode(0)          → "0"
+//	Encode(61)         → "z"
+//	Encode(62)         → "10"
+//	Encode(123456789)  → "8M0kX"
 //
 // 時間複雜度：O(log62(num))
 func Encode(num uint64) string {
@@ -87,10 +88,11 @@ func Encode(num uint64) string {
 //   - 類似於字符串 "123" → 1×100 + 2×10 + 3×1 = 123
 //
 // 範例：
-//   Decode("0")      → 0, nil
-//   Decode("z")      → 61, nil
-//   Decode("10")     → 62, nil
-//   Decode("8M0kX")  → 123456789, nil
+//
+//	Decode("0")      → 0, nil
+//	Decode("z")      → 61, nil
+//	Decode("10")     → 62, nil
+//	Decode("8M0kX")  → 123456789, nil
 //
 // 時間複雜度：O(len(str))
 func Decode(str string) (uint64, error) {
@@ -206,7 +208,8 @@ func MaxValue(length int) uint64 {
 // 用於生成固定長度的短碼
 //
 // 範例：
-//   Pad(Encode(123), 7) → "000001Z"
+//
+//	Pad(Encode(123), 7) → "000001Z"
 func Pad(encoded string, targetLen int) string {
 	if len(encoded) >= targetLen {
 		return encoded

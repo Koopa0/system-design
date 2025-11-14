@@ -68,10 +68,10 @@ func TestCounter_Increment(t *testing.T) {
 				location, _ := time.LoadLocation("Asia/Taipei")
 				today := time.Now().In(location).Format("20060102")
 				dauKey := fmt.Sprintf("counter:daily_active_users:users:%s", today)
-				
+
 				err := env.RedisClient.SAdd(ctx, dauKey, "user_456").Err()
 				require.NoError(t, err)
-				
+
 				err = env.RedisClient.Set(ctx, "counter:daily_active_users", 1, 0).Err()
 				require.NoError(t, err)
 			},
@@ -414,7 +414,7 @@ func TestCounter_FallbackMode(t *testing.T) {
 
 	config := testutils.DefaultTestConfig()
 	config.Counter.FallbackThreshold = 2 // 設置較低的閾值以便測試
-	
+
 	counter := internal.NewCounter(env.RedisClient, env.PostgresPool, config, env.Logger)
 	defer counter.Shutdown()
 
@@ -497,7 +497,7 @@ func TestCounter_UniqueUsers(t *testing.T) {
 
 	t.Run("count unique users", func(t *testing.T) {
 		users := []string{"user1", "user2", "user3", "user1", "user2", "user4"}
-		
+
 		for _, userID := range users {
 			_, err := counter.Increment(ctx, "daily_active_users", 1, userID)
 			assert.NoError(t, err)
@@ -719,7 +719,7 @@ func TestCounter_RaceConditions(t *testing.T) {
 		expectedValue = 0
 	}
 
-	assert.Equal(t, expectedValue, finalValue, 
+	assert.Equal(t, expectedValue, finalValue,
 		"Final value should match expected: initial(%d) + increments(%d) - decrements(%d) = %d",
 		initialValue, incrementTotal, decrementTotal, expectedValue)
 }
@@ -740,18 +740,18 @@ func TestCounter_MemoryLeaks(t *testing.T) {
 	// 創建和銷毀多個計數器實例
 	for i := 0; i < 10; i++ {
 		counter := internal.NewCounter(env.RedisClient, env.PostgresPool, config, env.Logger)
-		
+
 		ctx := context.Background()
-		
+
 		// 執行一些操作
 		for j := 0; j < 100; j++ {
 			counterName := fmt.Sprintf("leak_test_%d_%d", i, j)
 			_, _ = counter.Increment(ctx, counterName, 1, "")
 		}
-		
+
 		// 關閉計數器
 		counter.Shutdown()
-		
+
 		// 給一些時間讓 goroutine 清理
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -789,7 +789,7 @@ func TestCounter_EdgeCases(t *testing.T) {
 		for j := 0; j < 1000; j++ {
 			longName += "a"
 		}
-		
+
 		_, err := counter.Increment(ctx, longName, 1, "")
 		// 應該能處理長名稱
 		_ = err
@@ -901,19 +901,19 @@ func TestCounter_Integration(t *testing.T) {
 			visits   int
 			expected int64
 		}{
-			{"user_a", 3, 1},  // 多次訪問只計一次
-			{"user_b", 1, 2},  // 新用戶
-			{"user_c", 2, 3},  // 新用戶
-			{"user_a", 5, 3},  // 重複用戶，不增加
-			{"user_d", 1, 4},  // 新用戶
+			{"user_a", 3, 1}, // 多次訪問只計一次
+			{"user_b", 1, 2}, // 新用戶
+			{"user_c", 2, 3}, // 新用戶
+			{"user_a", 5, 3}, // 重複用戶，不增加
+			{"user_d", 1, 4}, // 新用戶
 		}
 
 		for _, u := range users {
 			for i := 0; i < u.visits; i++ {
 				value, err := counter.Increment(ctx, dauCounter, 1, u.id)
 				assert.NoError(t, err)
-				assert.Equal(t, u.expected, value, 
-					"User %s after %d visits should result in count %d", 
+				assert.Equal(t, u.expected, value,
+					"User %s after %d visits should result in count %d",
 					u.id, i+1, u.expected)
 			}
 		}

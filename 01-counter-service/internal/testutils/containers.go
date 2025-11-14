@@ -31,15 +31,15 @@ import (
 
 // TestEnvironment 封裝測試環境
 type TestEnvironment struct {
-	RedisClient     *redis.Client
-	PostgresPool    *pgxpool.Pool
-	RedisContainer  tc.Container
-	PgContainer     tc.Container
-	RedisAddr       string
-	PostgresDSN     string
-	Logger          *slog.Logger
-	ctx             context.Context
-	t               testing.TB
+	RedisClient    *redis.Client
+	PostgresPool   *pgxpool.Pool
+	RedisContainer tc.Container
+	PgContainer    tc.Container
+	RedisAddr      string
+	PostgresDSN    string
+	Logger         *slog.Logger
+	ctx            context.Context
+	t              testing.TB
 }
 
 // SetupTestEnvironment 設置完整的測試環境

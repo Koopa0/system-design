@@ -40,12 +40,12 @@ const (
 	sequenceBits  = 12 // 序列號佔 12 bit
 
 	// 最大值計算（2^n - 1）
-	maxMachineID = (1 << machineBits) - 1 // 1023
+	maxMachineID = (1 << machineBits) - 1  // 1023
 	maxSequence  = (1 << sequenceBits) - 1 // 4095
 
 	// 位移量
-	machineShift    = sequenceBits                    // 12
-	timestampShift  = sequenceBits + machineBits      // 22
+	machineShift   = sequenceBits               // 12
+	timestampShift = sequenceBits + machineBits // 22
 )
 
 var (
@@ -218,11 +218,11 @@ func ParseIDToTime(id int64) time.Time {
 
 // Info 返回 Snowflake ID 的詳細信息（用於調試）
 type Info struct {
-	ID         int64     `json:"id"`
-	Timestamp  int64     `json:"timestamp"`
-	Time       time.Time `json:"time"`
-	MachineID  int64     `json:"machine_id"`
-	Sequence   int64     `json:"sequence"`
+	ID        int64     `json:"id"`
+	Timestamp int64     `json:"timestamp"`
+	Time      time.Time `json:"time"`
+	MachineID int64     `json:"machine_id"`
+	Sequence  int64     `json:"sequence"`
 }
 
 // GetInfo 獲取 Snowflake ID 的詳細信息

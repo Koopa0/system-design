@@ -34,10 +34,10 @@ import (
 //  4. 保存到存儲層
 //
 // 系統設計考量：
-//  - ID 生成：使用 Snowflake（分布式、趨勢遞增、適合資料庫索引）
-//  - 短碼編碼：使用 Base62（URL 友好、比 Base64 更安全）
-//  - 衝突處理：依賴存儲層的原子性（如 PostgreSQL UNIQUE 約束）
-//  - 自定義短碼：允許用戶自定義（如品牌短鏈 bit.ly/google-io）
+//   - ID 生成：使用 Snowflake（分布式、趨勢遞增、適合資料庫索引）
+//   - 短碼編碼：使用 Base62（URL 友好、比 Base64 更安全）
+//   - 衝突處理：依賴存儲層的原子性（如 PostgreSQL UNIQUE 約束）
+//   - 自定義短碼：允許用戶自定義（如品牌短鏈 bit.ly/google-io）
 func Shorten(ctx context.Context, store Store, idgen *snowflake.Generator, longURL string, customCode string, expiresAt *time.Time) (*URL, error) {
 	// 1. 驗證 URL 格式
 	//

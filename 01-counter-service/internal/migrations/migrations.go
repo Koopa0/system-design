@@ -43,13 +43,13 @@ func New(databaseURL string, logger *slog.Logger) (*Migrator, error) {
 // Up 執行所有待處理的遷移
 func (m *Migrator) Up() error {
 	m.logger.Info("開始執行資料庫遷移")
-	
+
 	// 獲取當前版本
 	version, dirty, err := m.migrate.Version()
 	if err != nil && err != migrate.ErrNilVersion {
 		return fmt.Errorf("獲取當前版本失敗: %w", err)
 	}
-	
+
 	if dirty {
 		m.logger.Warn("資料庫處於髒狀態，嘗試修復", "version", version)
 		// 確保版本號在有效範圍內
@@ -61,7 +61,7 @@ func (m *Migrator) Up() error {
 			return fmt.Errorf("修復髒狀態失敗: %w", err)
 		}
 	}
-	
+
 	// 執行遷移
 	if err := m.migrate.Up(); err != nil {
 		if err == migrate.ErrNoChange {
@@ -70,18 +70,18 @@ func (m *Migrator) Up() error {
 		}
 		return fmt.Errorf("執行遷移失敗: %w", err)
 	}
-	
+
 	// 獲取新版本
 	newVersion, _, _ := m.migrate.Version()
 	m.logger.Info("資料庫遷移成功", "new_version", newVersion)
-	
+
 	return nil
 }
 
 // Down 回滾一個版本
 func (m *Migrator) Down() error {
 	m.logger.Info("開始回滾資料庫")
-	
+
 	if err := m.migrate.Steps(-1); err != nil {
 		if err == migrate.ErrNoChange {
 			m.logger.Info("沒有可回滾的版本")
@@ -89,17 +89,17 @@ func (m *Migrator) Down() error {
 		}
 		return fmt.Errorf("回滾失敗: %w", err)
 	}
-	
+
 	version, _, _ := m.migrate.Version()
 	m.logger.Info("資料庫回滾成功", "current_version", version)
-	
+
 	return nil
 }
 
 // Reset 重置資料庫（危險操作）
 func (m *Migrator) Reset() error {
 	m.logger.Warn("開始重置資料庫")
-	
+
 	if err := m.migrate.Down(); err != nil {
 		if err == migrate.ErrNoChange {
 			m.logger.Info("資料庫已重置")
@@ -107,7 +107,7 @@ func (m *Migrator) Reset() error {
 		}
 		return fmt.Errorf("重置失敗: %w", err)
 	}
-	
+
 	m.logger.Info("資料庫重置成功")
 	return nil
 }

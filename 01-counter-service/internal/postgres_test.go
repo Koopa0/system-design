@@ -227,7 +227,7 @@ func TestPostgres_SyncToPostgres(t *testing.T) {
 
 	config := testutils.DefaultTestConfig()
 	config.Counter.FlushInterval = 50 * time.Millisecond // 快速刷新
-	
+
 	counter := internal.NewCounter(env.RedisClient, env.PostgresPool, config, env.Logger)
 	defer counter.Shutdown()
 
@@ -279,7 +279,7 @@ func TestPostgres_WriteQueue(t *testing.T) {
 
 	config := testutils.DefaultTestConfig()
 	config.Counter.EnableFallback = true
-	
+
 	counter := internal.NewCounter(env.RedisClient, env.PostgresPool, config, env.Logger)
 	defer counter.Shutdown()
 
@@ -363,7 +363,7 @@ func TestPostgres_Recovery(t *testing.T) {
 		for name, expectedValue := range testData {
 			redisValue, err := env.RedisClient.Get(ctx, fmt.Sprintf("counter:%s", name)).Int64()
 			if err == nil {
-				assert.Equal(t, expectedValue, redisValue, 
+				assert.Equal(t, expectedValue, redisValue,
 					"Counter %s should be recovered to Redis", name)
 			}
 		}

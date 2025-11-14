@@ -12,6 +12,7 @@ import (
 // Postgres PostgreSQL 存儲實現
 //
 // 系統設計考量：
+//
 //  1. 表結構設計：
 //     - id：主鍵（Snowflake ID）
 //     - short_code：唯一索引（查詢優化）
@@ -52,9 +53,10 @@ type Postgres struct {
 //   - db：資料庫連接（由調用方管理生命週期）
 //
 // 連接池配置（調用方負責）：
-//   db.SetMaxOpenConns(25)        // 最大連接數
-//   db.SetMaxIdleConns(5)         // 最大空閒連接
-//   db.SetConnMaxLifetime(5*time.Minute)
+//
+//	db.SetMaxOpenConns(25)        // 最大連接數
+//	db.SetMaxIdleConns(5)         // 最大空閒連接
+//	db.SetConnMaxLifetime(5*time.Minute)
 func NewPostgres(db *sql.DB) *Postgres {
 	return &Postgres{db: db}
 }
@@ -190,7 +192,7 @@ func isDuplicateKeyError(err error) bool {
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
 		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-		containsInner(s, substr)))
+			containsInner(s, substr)))
 }
 
 func containsInner(s, substr string) bool {

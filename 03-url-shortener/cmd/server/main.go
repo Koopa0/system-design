@@ -21,10 +21,10 @@ import (
 // main 函數：應用程序入口
 //
 // 系統設計重點：
-//   1. 依賴初始化順序（資料庫 → ID生成器 → 存儲層 → HTTP處理）
-//   2. 優雅關閉（Graceful Shutdown）
-//   3. 配置管理（環境變量 vs 配置文件）
-//   4. 錯誤處理與日誌
+//  1. 依賴初始化順序（資料庫 → ID生成器 → 存儲層 → HTTP處理）
+//  2. 優雅關閉（Graceful Shutdown）
+//  3. 配置管理（環境變量 vs 配置文件）
+//  4. 錯誤處理與日誌
 func main() {
 	// 1. 初始化日誌
 	//
@@ -162,6 +162,7 @@ type Config struct {
 //   - 默認值：便於本地開發
 //   - 環境變量：生產環境覆蓋默認值
 //   - 驗證：確保配置合法（如端口範圍）
+//
 // loadConfig 加載配置
 //
 // 系統設計考量：
@@ -210,18 +211,19 @@ func getEnvInt64(key string, defaultValue int64) int64 {
 // connectPostgres 連接 PostgreSQL
 //
 // 系統設計考量：
-//   1. 連接池設置：
-//      - MaxOpenConns：最大打開連接數（避免耗盡資料庫連接）
-//      - MaxIdleConns：最大空閒連接數（複用連接）
-//      - ConnMaxLifetime：連接最大生命週期（避免長連接問題）
 //
-//   2. 超時設置：
-//      - connect_timeout：連接超時（秒）
-//      - statement_timeout：SQL 執行超時（毫秒）
+//  1. 連接池設置：
+//     - MaxOpenConns：最大打開連接數（避免耗盡資料庫連接）
+//     - MaxIdleConns：最大空閒連接數（複用連接）
+//     - ConnMaxLifetime：連接最大生命週期（避免長連接問題）
 //
-//   3. 健康檢查：
-//      - 啟動時 Ping 驗證連接
-//      - 運行時定期健康檢查
+//  2. 超時設置：
+//     - connect_timeout：連接超時（秒）
+//     - statement_timeout：SQL 執行超時（毫秒）
+//
+//  3. 健康檢查：
+//     - 啟動時 Ping 驗證連接
+//     - 運行時定期健康檢查
 func connectPostgres(databaseURL string, logger *slog.Logger) (*sql.DB, error) {
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {

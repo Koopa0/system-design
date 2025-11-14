@@ -17,8 +17,8 @@ import (
 func main() {
 	// 解析命令行參數
 	var (
-		port     = flag.Int("port", 8080, "服務器端口")
-		logLevel = flag.String("log-level", "info", "日誌級別 (debug, info, warn, error)")
+		port      = flag.Int("port", 8080, "服務器端口")
+		logLevel  = flag.String("log-level", "info", "日誌級別 (debug, info, warn, error)")
 		logFormat = flag.String("log-format", "text", "日誌格式 (text, json)")
 	)
 	flag.Parse()
@@ -37,10 +37,10 @@ func main() {
 
 	// 設置路由
 	mux := http.NewServeMux()
-	
+
 	// HTTP API 路由
 	mux.Handle("/", handler.Routes())
-	
+
 	// WebSocket 路由
 	mux.HandleFunc("/ws/rooms/{room_id}", wsHub.ServeWS)
 
@@ -55,11 +55,11 @@ func main() {
 
 	// 啟動服務器
 	go func() {
-		logger.Info("遊戲房間服務器啟動", 
+		logger.Info("遊戲房間服務器啟動",
 			"port", *port,
 			"log_level", *logLevel,
 			"log_format", *logFormat)
-		
+
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("服務器啟動失敗", "error", err)
 			os.Exit(1)
@@ -108,7 +108,7 @@ func setupLogger(level, format string) *slog.Logger {
 	}
 
 	opts := &slog.HandlerOptions{
-		Level: logLevel,
+		Level:     logLevel,
 		AddSource: level == "debug", // debug 模式顯示源碼位置
 	}
 

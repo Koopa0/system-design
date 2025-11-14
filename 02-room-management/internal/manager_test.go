@@ -25,12 +25,12 @@ func testLogger() *slog.Logger {
 func TestNewManager(t *testing.T) {
 	logger := testLogger()
 	manager := internal.NewManager(logger)
-	
+
 	require.NotNil(t, manager)
-	
+
 	// 清理
 	defer manager.Stop()
-	
+
 	// 驗證初始狀態
 	stats := manager.Stats()
 	assert.Equal(t, 0, stats["total_rooms"])
@@ -125,13 +125,13 @@ func TestManager_CreateRoom(t *testing.T) {
 			)
 
 			tt.validate(t, room, err)
-			
+
 			// 如果創建成功，驗證可以獲取房間
 			if err == nil {
 				gotRoom, err := manager.GetRoom(room.ID)
 				assert.NoError(t, err)
 				assert.Equal(t, room.ID, gotRoom.ID)
-				
+
 				// 驗證通過加入碼獲取
 				gotRoom, err = manager.GetRoomByJoinCode(room.JoinCode)
 				assert.NoError(t, err)
@@ -163,11 +163,11 @@ func TestManager_JoinRoom(t *testing.T) {
 			password:   "",
 			validate: func(t *testing.T, manager *internal.Manager, roomID string, err error) {
 				require.NoError(t, err)
-				
+
 				// 驗證玩家在房間中
 				room, _ := manager.GetRoom(roomID)
 				assert.Equal(t, 1, room.GetPlayerCount())
-				
+
 				// 驗證玩家房間映射
 				playerRoomID, exists := manager.GetPlayerRoom("player_001")
 				assert.True(t, exists)
@@ -265,11 +265,11 @@ func TestManager_LeaveRoom(t *testing.T) {
 			},
 			validate: func(t *testing.T, manager *internal.Manager, roomID string, err error) {
 				require.NoError(t, err)
-				
+
 				// 驗證玩家已離開
 				room, _ := manager.GetRoom(roomID)
 				assert.Equal(t, 1, room.GetPlayerCount())
-				
+
 				// 驗證玩家房間映射已清除
 				_, exists := manager.GetPlayerRoom("player_001")
 				assert.False(t, exists)
@@ -284,7 +284,7 @@ func TestManager_LeaveRoom(t *testing.T) {
 			},
 			validate: func(t *testing.T, manager *internal.Manager, roomID string, err error) {
 				require.NoError(t, err)
-				
+
 				// 空房間不再立即被移除，而是等待過期機制處理
 				room, err := manager.GetRoom(roomID)
 				assert.NoError(t, err)
@@ -321,7 +321,7 @@ func TestManager_GameFlow(t *testing.T) {
 	// 玩家加入
 	err = manager.JoinRoom(room.ID, "player_001", "玩家一", "")
 	require.NoError(t, err)
-	
+
 	err = manager.JoinRoom(room.ID, "player_002", "玩家二", "")
 	require.NoError(t, err)
 
@@ -338,7 +338,7 @@ func TestManager_GameFlow(t *testing.T) {
 	// 設置準備狀態
 	err = manager.SetPlayerReady(room.ID, "player_001", true)
 	require.NoError(t, err)
-	
+
 	err = manager.SetPlayerReady(room.ID, "player_002", true)
 	require.NoError(t, err)
 
@@ -362,7 +362,7 @@ func TestManager_ListRooms(t *testing.T) {
 	room1, _ := manager.CreateRoom("房間1", 4, "", internal.ModeCoop, "normal")
 	room2, _ := manager.CreateRoom("房間2", 2, "password", internal.ModeVersus, "hard")
 	_, _ = manager.CreateRoom("房間3", 3, "", internal.ModePractice, "easy")
-	
+
 	// 加入玩家
 	manager.JoinRoom(room1.ID, "player_001", "玩家一", "")
 	manager.JoinRoom(room1.ID, "player_002", "玩家二", "")
@@ -377,7 +377,7 @@ func TestManager_ListRooms(t *testing.T) {
 	t.Run("filter by status", func(t *testing.T) {
 		rooms, total := manager.ListRooms(internal.StatusWaiting, "", 1, 10)
 		assert.GreaterOrEqual(t, total, 0)
-		
+
 		for _, room := range rooms {
 			assert.Equal(t, internal.StatusWaiting, room["status"])
 		}
@@ -386,7 +386,7 @@ func TestManager_ListRooms(t *testing.T) {
 	t.Run("filter by game mode", func(t *testing.T) {
 		rooms, total := manager.ListRooms("", internal.ModeCoop, 1, 10)
 		assert.GreaterOrEqual(t, total, 1)
-		
+
 		for _, room := range rooms {
 			assert.Equal(t, internal.ModeCoop, room["game_mode"])
 		}
@@ -397,12 +397,12 @@ func TestManager_ListRooms(t *testing.T) {
 		rooms1, total1 := manager.ListRooms("", "", 1, 2)
 		assert.Equal(t, 3, total1)
 		assert.Len(t, rooms1, 2)
-		
+
 		// 第二頁
 		rooms2, total2 := manager.ListRooms("", "", 2, 2)
 		assert.Equal(t, 3, total2)
 		assert.Len(t, rooms2, 1)
-		
+
 		// 超出範圍的頁
 		rooms3, total3 := manager.ListRooms("", "", 5, 2)
 		assert.Equal(t, 3, total3)
@@ -554,14 +554,14 @@ func TestManager_ConcurrentOperations(t *testing.T) {
 				wg.Add(1)
 				go func(rIdx, oIdx int) {
 					defer wg.Done()
-					
+
 					roomID := rooms[rIdx].ID
 					playerID := fmt.Sprintf("player_%d_%d", rIdx, oIdx)
 					playerName := fmt.Sprintf("玩家%d-%d", rIdx, oIdx)
-					
+
 					// 加入
 					manager.JoinRoom(roomID, playerID, playerName, "")
-					
+
 					// 執行一些操作
 					if oIdx%3 == 0 {
 						// 部分玩家離開
@@ -577,7 +577,7 @@ func TestManager_ConcurrentOperations(t *testing.T) {
 		// 驗證系統狀態一致性
 		stats := manager.Stats()
 		assert.Equal(t, roomCount, stats["total_rooms"])
-		
+
 		totalPlayers := stats["total_players"].(int)
 		assert.GreaterOrEqual(t, totalPlayers, 0)
 		assert.LessOrEqual(t, totalPlayers, roomCount*operationsPerRoom)
@@ -676,7 +676,7 @@ func TestManager_SetPlayerReady(t *testing.T) {
 	room, _ := manager.CreateRoom("測試房間", 2, "", internal.ModeCoop, "normal")
 	manager.JoinRoom(room.ID, "player_001", "玩家一", "") // 第一個玩家成為房主
 	manager.JoinRoom(room.ID, "player_002", "玩家二", "") // 滿員，狀態變成 StatusPreparing
-	
+
 	// 選擇歌曲（SetPlayerReady 需要先選歌）
 	song := &internal.Song{
 		ID:   "song_001",
@@ -687,7 +687,7 @@ func TestManager_SetPlayerReady(t *testing.T) {
 	// 測試設置準備狀態
 	err := manager.SetPlayerReady(room.ID, "player_001", true)
 	assert.NoError(t, err)
-	
+
 	// 測試取消準備狀態
 	err = manager.SetPlayerReady(room.ID, "player_001", false)
 	assert.NoError(t, err)
@@ -771,7 +771,7 @@ func TestManager_GenerateIDUniqueness(t *testing.T) {
 	logger := testLogger()
 	manager := internal.NewManager(logger)
 	defer manager.Stop()
-	
+
 	// 生成多個房間，確保 ID 唯一
 	ids := make(map[string]bool)
 	for i := 0; i < 100; i++ {
@@ -785,14 +785,14 @@ func TestManager_GenerateIDUniqueness(t *testing.T) {
 // TestRoom_CloseWithEvents 測試關閉房間並發送事件
 func TestRoom_CloseWithEvents(t *testing.T) {
 	room := internal.NewRoom("room_001", "測試房間", "ABC123", 4, "", internal.ModeCoop, "normal")
-	
+
 	// 監聽事件
 	eventCh := room.Events()
-	
+
 	// 加入玩家
 	room.AddPlayer("player_001", "玩家一")
 	room.AddPlayer("player_002", "玩家二")
-	
+
 	// 清空之前的事件
 	select {
 	case <-eventCh:
@@ -802,13 +802,13 @@ func TestRoom_CloseWithEvents(t *testing.T) {
 	case <-eventCh:
 	case <-time.After(10 * time.Millisecond):
 	}
-	
+
 	// 關閉房間
 	go func() {
 		time.Sleep(10 * time.Millisecond)
 		room.Close("測試關閉")
 	}()
-	
+
 	// 等待關閉事件
 	select {
 	case event := <-eventCh:
@@ -819,10 +819,10 @@ func TestRoom_CloseWithEvents(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("沒有收到關閉事件")
 	}
-	
+
 	// 驗證房間狀態
 	assert.Equal(t, internal.StatusClosed, room.Status)
-	
+
 	// 驗證不能再加入玩家
 	err := room.AddPlayer("player_003", "玩家三")
 	assert.Error(t, err)

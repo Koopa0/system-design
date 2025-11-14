@@ -72,8 +72,8 @@ func TestDecode(t *testing.T) {
 func TestEncodeDecodeRoundTrip(t *testing.T) {
 	testCases := []uint64{
 		0, 1, 62, 123, 456789,
-		uint64(1) << 32,             // 4GB
-		uint64(1) << 40,             // 1TB
+		uint64(1) << 32, // 4GB
+		uint64(1) << 40, // 1TB
 		math.MaxUint64 / 2,
 		math.MaxUint64 - 1,
 		math.MaxUint64,
@@ -145,9 +145,9 @@ func TestMaxValue(t *testing.T) {
 		expected uint64
 	}{
 		{0, 0},
-		{1, 61},        // 62^1 - 1
-		{2, 3843},      // 62^2 - 1
-		{6, 56800235583}, // 62^6 - 1
+		{1, 61},            // 62^1 - 1
+		{2, 3843},          // 62^2 - 1
+		{6, 56800235583},   // 62^6 - 1
 		{7, 3521614606207}, // 62^7 - 1
 	}
 
