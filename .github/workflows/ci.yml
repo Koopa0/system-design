@@ -1,381 +1,109 @@
-name: CI/CD Pipeline
+# GitHub Actions CI Workflow
+#
+# 使用方式：
+#   mkdir -p .github/workflows
+#   cp docs/ci.yml.example .github/workflows/ci.yml
+#   git add .github/workflows/ci.yml
+#   git commit -m "ci: add GitHub Actions workflow"
+#   git push
+#
+# Required Status Checks (匹配 GitHub rule set):
+#   - lint
+#   - test
+#   - build
+
+name: CI
 
 on:
   push:
-    branches: [ main, develop, "claude/**" ]
+    branches: ["**"]
   pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:  # 允許手動觸發
+    branches: [main]
+  workflow_dispatch:
 
-env:
-  GO_VERSION: '1.25'
-  POSTGRES_VERSION: '18'
-  POSTGRES_DB: ecommerce_test
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: postgres
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
 
 jobs:
-  # ============================================================================
-  # Job 1: Go Code Quality Checks
-  # ============================================================================
-  golang-quality:
-    name: Go Code Quality
+  lint:
+    name: Lint & Security
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
         with:
-          go-version: ${{ env.GO_VERSION }}
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
           cache: true
-
-      - name: Verify Go installation
-        run: |
-          go version
-          go env
-
-      # gofmt: 檢查格式
-      - name: Check Go formatting (gofmt)
-        run: |
-          echo "Checking Go code formatting..."
-          unformatted=$(gofmt -l .)
-          if [ -n "$unformatted" ]; then
-            echo "❌ The following files are not formatted:"
-            echo "$unformatted"
-            exit 1
-          fi
-          echo "✅ All Go files are properly formatted"
-
-      # go vet: 靜態分析
-      - name: Run go vet
-        run: |
-          echo "Running go vet..."
-          go vet ./...
-          echo "✅ go vet passed"
-
-      # golangci-lint: 綜合 linter (包含 gosec, staticcheck 等)
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
+      - run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum || exit 1
+      - uses: golangci/golangci-lint-action@v4
         with:
           version: latest
-          args: --timeout=5m --config=.golangci.yml
-          skip-cache: false
-          skip-pkg-cache: false
-          skip-build-cache: false
-
-      # gosec: 安全檢查 (獨立運行以獲取詳細報告)
-      - name: Run gosec security scanner
-        run: |
+          args: --timeout=10m --config=.golangci.yml
+      - run: |
+          [ -z "$(gofmt -l .)" ] || exit 1
+      - run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          echo "Running security scan..."
-          gosec -fmt=json -out=gosec-report.json ./... || true
           gosec ./...
 
-      # staticcheck: 深度靜態分析
-      - name: Run staticcheck
-        run: |
-          go install honnef.co/go/tools/cmd/staticcheck@latest
-          echo "Running staticcheck..."
-          staticcheck ./...
-
-      # 依賴檢查
-      - name: Check Go mod tidy
-        run: |
-          go mod tidy
-          if [ -n "$(git status --porcelain go.mod go.sum)" ]; then
-            echo "❌ go.mod or go.sum is not tidy"
-            git diff go.mod go.sum
-            exit 1
-          fi
-          echo "✅ go.mod and go.sum are tidy"
-
-      # 上傳安全掃描報告
-      - name: Upload gosec report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gosec-report
-          path: gosec-report.json
-          retention-days: 30
-
-  # ============================================================================
-  # Job 2: Go Build and Test
-  # ============================================================================
-  golang-build-test:
-    name: Go Build & Test
+  test:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    needs: golang-quality
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-
-      # 構建所有 packages
-      - name: Build Go packages
-        run: |
-          echo "Building all packages..."
-          go build -v ./...
-          echo "✅ Build successful"
-
-      # 運行測試 (當有測試文件時)
-      - name: Run Go tests
-        run: |
-          if compgen -G "**/*_test.go" > /dev/null; then
-            echo "Running tests with coverage..."
-            go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-            go tool cover -func=coverage.txt
-          else
-            echo "⚠️  No test files found, skipping tests"
-          fi
-
-      # 上傳測試覆蓋率
-      - name: Upload coverage to Codecov
-        if: hashFiles('coverage.txt') != ''
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.txt
-          flags: unittests
-          name: codecov-umbrella
-
-  # ============================================================================
-  # Job 3: SQL Validation
-  # ============================================================================
-  sql-validation:
-    name: SQL Validation
-    runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        go-version: ['1.23', '1.24']
     services:
       postgres:
-        image: postgres:18-alpine
+        image: postgres:16-alpine
         env:
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
         ports:
           - 5432:5432
-
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 安裝 PostgreSQL 客戶端
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-16
-
-      # 驗證 PostgreSQL 連接
-      - name: Verify PostgreSQL connection
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -c "SELECT version();"
-
-      # SQL 語法檢查 (使用 sqlfluff)
-      - name: Install sqlfluff
-        run: |
-          pip install sqlfluff sqlfluff-templater-dbt
-
-      - name: Run SQL linter (sqlfluff)
-        run: |
-          echo "Linting SQL files..."
-          sqlfluff lint shared/sql/*.sql scripts/*.sql --dialect postgres || true
-          echo "✅ SQL linting completed"
-
-      # Schema 驗證: 導入完整 schema
-      - name: Validate Schema Import
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          echo "Importing complete schema..."
-          psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f shared/sql/complete_schema.sql
-          echo "✅ Schema imported successfully"
-
-      # 驗證表數量
-      - name: Verify table count
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          echo "Checking table count..."
-          table_count=$(psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';")
-          echo "Found $table_count tables"
-          if [ "$table_count" -lt 30 ]; then
-            echo "❌ Expected at least 30 tables, found $table_count"
-            exit 1
-          fi
-          echo "✅ Table count validation passed"
-
-      # 驗證觸發器
-      - name: Verify triggers
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          echo "Checking triggers..."
-          trigger_count=$(psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -t -c "SELECT COUNT(*) FROM pg_trigger WHERE tgisinternal = false;")
-          echo "Found $trigger_count triggers"
-          if [ "$trigger_count" -lt 10 ]; then
-            echo "❌ Expected at least 10 triggers, found $trigger_count"
-            exit 1
-          fi
-          echo "✅ Trigger validation passed"
-
-      # 驗證索引
-      - name: Verify indexes
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          echo "Checking indexes..."
-          index_count=$(psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -t -c "SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public';")
-          echo "Found $index_count indexes"
-          if [ "$index_count" -lt 60 ]; then
-            echo "❌ Expected at least 60 indexes, found $index_count"
-            exit 1
-          fi
-          echo "✅ Index validation passed"
-
-      # 測試小型資料生成
-      - name: Test small data generation
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          echo "Testing small data generation..."
-          timeout 120 psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f scripts/generate_test_data_small.sql
-          echo "✅ Small data generation successful"
-
-      # 驗證資料完整性
-      - name: Verify data integrity
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          echo "Checking data integrity..."
-
-          # 檢查用戶數量
-          user_count=$(psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -t -c "SELECT COUNT(*) FROM users;")
-          echo "Users: $user_count"
-
-          # 檢查產品數量
-          product_count=$(psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -t -c "SELECT COUNT(*) FROM products;")
-          echo "Products: $product_count"
-
-          # 檢查訂單數量
-          order_count=$(psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -t -c "SELECT COUNT(*) FROM orders;")
-          echo "Orders: $order_count"
-
-          if [ "$user_count" -lt 50 ] || [ "$product_count" -lt 100 ] || [ "$order_count" -lt 100 ]; then
-            echo "❌ Data generation seems incomplete"
-            exit 1
-          fi
-          echo "✅ Data integrity check passed"
-
-      # 測試外鍵約束
-      - name: Test foreign key constraints
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          echo "Testing foreign key constraints..."
-
-          # 嘗試插入無效的外鍵 (應該失敗)
-          if psql -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -c "INSERT INTO order_items (order_id, product_id, product_name, product_sku, quantity, unit_price, subtotal) VALUES ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 'test', 'test', 1, 10, 10);" 2>&1; then
-            echo "❌ Foreign key constraint not working"
-            exit 1
-          fi
-          echo "✅ Foreign key constraints working correctly"
-
-  # ============================================================================
-  # Job 4: Documentation Checks
-  # ============================================================================
-  documentation:
-    name: Documentation Checks
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 檢查必要的文檔文件
-      - name: Check required documentation
-        run: |
-          echo "Checking for required documentation files..."
-
-          required_files=(
-            "README.md"
-            "docs/QUICK_START.md"
-            "docs/ER_DIAGRAM.md"
-            "docs/LEARNING_PATH.md"
-            "docs/CHAPTER_TEMPLATE.md"
-            "docs/CODE_REVIEW_CHECKLIST.md"
-          )
-
-          missing_files=()
-          for file in "${required_files[@]}"; do
-            if [ ! -f "$file" ]; then
-              missing_files+=("$file")
-            fi
-          done
-
-          if [ ${#missing_files[@]} -gt 0 ]; then
-            echo "❌ Missing documentation files:"
-            printf '%s\n' "${missing_files[@]}"
-            exit 1
-          fi
-          echo "✅ All required documentation files present"
-
-      # 檢查 Markdown 格式 (使用 markdownlint)
-      - name: Lint Markdown files
-        uses: DavidAnson/markdownlint-cli2-action@v15
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          globs: '**/*.md'
-          config: '.markdownlint.json'
-          fix: false
-        continue-on-error: true  # 不阻止 CI，只是警告
-
-      # 檢查斷鏈
-      - name: Check for broken links
-        uses: lycheeverse/lychee-action@v1
+          go-version: ${{ matrix.go-version }}
+          cache: true
+      - run: go mod download
+      - env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/testdb?sslmode=disable
+          REDIS_URL: redis://localhost:6379
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+      - if: matrix.go-version == '1.24'
+        uses: codecov/codecov-action@v4
         with:
-          args: --verbose --no-progress '**/*.md'
-          fail: true
-        continue-on-error: true
+          file: ./coverage.out
+          fail_ci_if_error: false
 
-  # ============================================================================
-  # Job 5: Final Summary
-  # ============================================================================
-  summary:
-    name: CI Summary
+  build:
+    name: Build
     runs-on: ubuntu-latest
-    needs: [golang-quality, golang-build-test, sql-validation, documentation]
-    if: always()
-
+    strategy:
+      matrix:
+        project:
+          - 01-counter-service
+          - 02-room-management
+          - 03-url-shortener
     steps:
-      - name: Check job results
-        run: |
-          echo "=== CI/CD Pipeline Summary ==="
-          echo ""
-          echo "✅ Go Code Quality: ${{ needs.golang-quality.result }}"
-          echo "✅ Go Build & Test: ${{ needs.golang-build-test.result }}"
-          echo "✅ SQL Validation: ${{ needs.sql-validation.result }}"
-          echo "✅ Documentation: ${{ needs.documentation.result }}"
-          echo ""
-
-          if [ "${{ needs.golang-quality.result }}" != "success" ] || \
-             [ "${{ needs.golang-build-test.result }}" != "success" ] || \
-             [ "${{ needs.sql-validation.result }}" != "success" ]; then
-            echo "❌ Some checks failed. Please review the logs above."
-            exit 1
-          fi
-
-          echo "✅ All CI checks passed successfully!"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - working-directory: ${{ matrix.project }}
+        run: go build -v -o /tmp/app ./cmd/server/main.go
+      - run: test -f /tmp/app
