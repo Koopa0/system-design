@@ -509,11 +509,22 @@ func (r *Room) Events() <-chan Event {
 }
 
 // sendEvent 發送事件（內部使用，需要持有鎖）
+//
+// 系統設計考量：
+//   - 檢查房間是否已關閉，避免 send on closed channel panic
+//   - 非阻塞發送（使用 select default），避免慢消費者阻塞操作
+//   - 如果通道滿或已關閉，丟棄事件（優先保證操作成功）
 func (r *Room) sendEvent(event Event) {
+	// 檢查房間是否已關閉（防止 panic）
+	if r.Status == StatusClosed {
+		return
+	}
+
 	select {
 	case r.events <- event:
 	default:
-		// 通道滿了，丟棄事件（簡單處理）
+		// 通道滿了或已關閉，丟棄事件（簡單處理）
+		// 生產環境應該：記錄日誌、監控丟失率
 	}
 }
 

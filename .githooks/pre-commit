@@ -50,7 +50,12 @@ staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' ||
 
 if [ -n "$staged_files" ]; then
     # 只檢查暫存的文件（提高速度）
-    echo "$staged_files" | xargs golangci-lint run --config=.golangci.yml || {
+    #
+    # 系統設計考量：
+    #   - 使用 tr '\n' '\0' | xargs -0 處理文件名中的空格
+    #   - \0（null）作為分隔符，而不是換行符或空格
+    #   - 避免文件名包含空格時的解析錯誤
+    echo "$staged_files" | tr '\n' '\0' | xargs -0 golangci-lint run --config=.golangci.yml || {
         echo -e "${RED}❌ Linting failed${NC}"
         echo "Run: make lint-fix (to auto-fix)"
         exit 1

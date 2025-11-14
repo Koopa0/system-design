@@ -182,6 +182,14 @@ func (hub *WebSocketHub) unregister(conn *Connection) {
 				close(conn.Send)
 			})
 
+			// 關閉 WebSocket 連接（防止資源洩漏）
+			//
+			// 系統設計考量：
+			//   - 必須關閉底層連接以釋放系統資源（TCP socket、緩衝區）
+			//   - 只關閉 channel 會導致連接洩漏
+			//   - 連接可能已被 readPump/writePump 關閉，所以忽略錯誤
+			_ = conn.Conn.Close()
+
 			// 如果房間沒有連接了，清理房間
 			if len(roomConns) == 0 {
 				delete(hub.connections, conn.RoomID)

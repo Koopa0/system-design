@@ -266,6 +266,9 @@ func (h *Handler) writeJSON(w http.ResponseWriter, data any, status int) {
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		h.logger.Error("encode json failed", "error", err)
+		// 注意：此時 Header 已發送，無法改變狀態碼
+		// 只能記錄錯誤，響應可能不完整
+		// 生產環境建議：先序列化到 buffer，再寫入 ResponseWriter
 	}
 }
 
