@@ -16,8 +16,12 @@ import (
 )
 
 // MockDataStore 模擬資料庫（用於展示快取策略）。
+// MockDataStore 是一個簡單的記憶體資料儲存（用於示範）。
+//
+// 並發安全：使用 RWMutex 保護 map 訪問
 type MockDataStore struct {
 	data map[string]interface{}
+	mu   sync.RWMutex
 }
 
 func NewMockDataStore() *MockDataStore {
@@ -27,6 +31,9 @@ func NewMockDataStore() *MockDataStore {
 }
 
 func (m *MockDataStore) Get(ctx context.Context, key string) (interface{}, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if value, ok := m.data[key]; ok {
 		return value, nil
 	}
@@ -34,11 +41,17 @@ func (m *MockDataStore) Get(ctx context.Context, key string) (interface{}, error
 }
 
 func (m *MockDataStore) Set(ctx context.Context, key string, value interface{}) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.data[key] = value
 	return nil
 }
 
 func (m *MockDataStore) Delete(ctx context.Context, key string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	delete(m.data, key)
 	return nil
 }
