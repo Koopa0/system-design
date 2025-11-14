@@ -69,9 +69,9 @@ func demonstrateLRU() {
 	lru := cache.NewLRU(3)
 
 	// 寫入資料
-	lru.Put("a", "value_a")
-	lru.Put("b", "value_b")
-	lru.Put("c", "value_c")
+	lru.Set("a", "value_a")
+	lru.Set("b", "value_b")
+	lru.Set("c", "value_c")
 	log.Printf("已寫入 3 筆資料，當前快取：%v", lru.Keys())
 
 	// 存取 a（移到最前面）
@@ -79,7 +79,7 @@ func demonstrateLRU() {
 	log.Printf("存取 'a' 後，當前快取：%v", lru.Keys())
 
 	// 寫入 d（淘汰最久未使用的 b）
-	lru.Put("d", "value_d")
+	lru.Set("d", "value_d")
 	log.Printf("寫入 'd' 後，當前快取：%v (淘汰了 'b')", lru.Keys())
 }
 
@@ -90,9 +90,9 @@ func demonstrateLFU() {
 	lfu := cache.NewLFU(3)
 
 	// 寫入資料
-	lfu.Put("a", "value_a")
-	lfu.Put("b", "value_b")
-	lfu.Put("c", "value_c")
+	lfu.Set("a", "value_a")
+	lfu.Set("b", "value_b")
+	lfu.Set("c", "value_c")
 
 	// 多次存取 a（增加頻率）
 	lfu.Get("a")
@@ -107,7 +107,7 @@ func demonstrateLFU() {
 		stats.Size, stats.MinFreq, stats.FreqDist)
 
 	// 寫入 d（淘汰頻率最低的 c）
-	lfu.Put("d", "value_d")
+	lfu.Set("d", "value_d")
 	stats = lfu.GetStats()
 	log.Printf("寫入 'd' 後，頻率分布=%v (淘汰了頻率最低的 'c')", stats.FreqDist)
 }

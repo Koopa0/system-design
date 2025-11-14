@@ -104,7 +104,7 @@ func (lru *LRU) Get(key string) (interface{}, bool) {
 //
 // 淘汰策略：
 //   當容量滿時，淘汰鏈表尾部的項目（最久未使用）
-func (lru *LRU) Put(key string, value interface{}) {
+func (lru *LRU) Set(key string, value interface{}) {
 	lru.mu.Lock()
 	defer lru.mu.Unlock()
 
@@ -138,8 +138,8 @@ func (lru *LRU) evict() {
 	}
 }
 
-// Remove 刪除快取項目。
-func (lru *LRU) Remove(key string) {
+// Delete 刪除快取項目。
+func (lru *LRU) Delete(key string) {
 	lru.mu.Lock()
 	defer lru.mu.Unlock()
 

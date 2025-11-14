@@ -108,7 +108,7 @@ func (lfu *LFU) Get(key string) (interface{}, bool) {
 //   2. 如果 key 不存在：
 //      - 容量已滿：淘汰頻率最低且最久未使用的項目
 //      - 新增項目（頻率=1）
-func (lfu *LFU) Put(key string, value interface{}) {
+func (lfu *LFU) Set(key string, value interface{}) {
 	lfu.mu.Lock()
 	defer lfu.mu.Unlock()
 
@@ -205,8 +205,8 @@ func (lfu *LFU) evict() {
 	}
 }
 
-// Remove 刪除快取項目。
-func (lfu *LFU) Remove(key string) {
+// Delete 刪除快取項目。
+func (lfu *LFU) Delete(key string) {
 	lfu.mu.Lock()
 	defer lfu.mu.Unlock()
 
