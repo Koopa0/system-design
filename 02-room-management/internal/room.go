@@ -127,9 +127,11 @@ type Room struct {
 	SelectedSong *Song              `json:"selected_song,omitempty"`
 	HostID       string             `json:"host_id"` // 房主有特殊權限
 
-	Mu         sync.RWMutex `json:"-"` // 讀寫鎖（並發控制）
-	events     chan Event   // 事件通道（異步通知）
-	lastActive time.Time    // 最後活動時間（資源回收）
+	Mu           sync.RWMutex `json:"-"` // 讀寫鎖（並發控制）
+	events       chan Event   // 事件通道（異步通知）
+	lastActive   time.Time    // 最後活動時間（資源回收）
+	closeOnce    sync.Once    // 確保 channel 只關閉一次
+	eventsClosed atomic.Bool  // 標記 events channel 是否已關閉
 }
 
 // Event 房間事件
@@ -448,7 +450,12 @@ func (r *Room) Close(reason string) {
 
 	// 給接收者一點時間處理事件
 	time.Sleep(10 * time.Millisecond)
-	close(r.events)
+
+	// 使用 sync.Once 確保 channel 只關閉一次（防止 panic）
+	r.closeOnce.Do(func() {
+		r.eventsClosed.Store(true) // 先標記已關閉
+		close(r.events)
+	})
 }
 
 // IsExpired 檢查房間是否過期
@@ -511,12 +518,16 @@ func (r *Room) Events() <-chan Event {
 // sendEvent 發送事件（內部使用，需要持有鎖）
 //
 // 系統設計考量：
-//   - 檢查房間是否已關閉，避免 send on closed channel panic
+//   - 使用 atomic 標記檢查 channel 是否已關閉，避免 TOCTOU
 //   - 非阻塞發送（使用 select default），避免慢消費者阻塞操作
 //   - 如果通道滿或已關閉，丟棄事件（優先保證操作成功）
+//
+// 修復 TOCTOU 問題：
+//   問題：檢查 Status == StatusClosed 後，channel 可能在 send 前被關閉
+//   方案：使用 atomic.Bool 標記，在 Close() 中先設置標記再關閉 channel
 func (r *Room) sendEvent(event Event) {
-	// 檢查房間是否已關閉（防止 panic）
-	if r.Status == StatusClosed {
+	// 檢查 channel 是否已關閉（防止 panic）
+	if r.eventsClosed.Load() {
 		return
 	}
 

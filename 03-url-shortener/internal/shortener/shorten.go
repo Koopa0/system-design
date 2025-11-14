@@ -105,13 +105,23 @@ func Shorten(ctx context.Context, store Store, idgen *snowflake.Generator, longU
 
 	// 3. 構建 URL 記錄
 	now := time.Now()
+
+	// 修復指標共享問題：深拷貝 ExpiresAt
+	//   問題：直接使用 expiresAt 指標，呼叫方可能在之後修改該值
+	//   方案：創建新的 time.Time 副本
+	var expiresAtCopy *time.Time
+	if expiresAt != nil {
+		t := *expiresAt
+		expiresAtCopy = &t
+	}
+
 	urlRecord := &URL{
 		ID:        id,
 		ShortCode: shortCode,
 		LongURL:   longURL,
 		Clicks:    0,
 		CreatedAt: now,
-		ExpiresAt: expiresAt,
+		ExpiresAt: expiresAtCopy,
 	}
 
 	// 4. 保存到存儲層
@@ -193,14 +203,60 @@ func isPrivateOrLocalhost(host string) bool {
 	// 嘗試解析為 IP
 	ip := net.ParseIP(host)
 	if ip == nil {
-		// 如果不是 IP，嘗試解析域名（簡化處理：允許域名通過）
-		// 生產環境應該：
-		//   1. 解析域名為 IP
-		//   2. 檢查所有 IP 是否為私有
-		//   3. 設置解析超時（避免 DNS rebinding）
+		// 修復 SSRF DNS 繞過漏洞：解析域名並檢查所有 IP
+		//
+		// 問題：
+		//   攻擊者可以使用解析到私有 IP 的域名繞過檢查
+		//   例如：evil.com → 192.168.1.1
+		//
+		// 方案：
+		//   實際解析域名並檢查所有結果 IP
+		//
+		// ⚠️ 已知限制（教學簡化）：
+		//   1. DNS 查詢無超時控制
+		//      - net.LookupIP 可能阻塞數秒甚至更久
+		//      - 生產環境應使用：
+		//        resolver := &net.Resolver{PreferGo: true}
+		//        ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		//        ips, err := resolver.LookupIP(ctx, "ip", host)
+		//
+		//   2. 容易受到 DNS rebinding 攻擊（TOCTOU）
+		//      - 時序：
+		//        驗證時：evil.com → 1.2.3.4 (合法) ✅ 通過
+		//        訪問時：evil.com → 192.168.1.1 (私有) ❌ 繞過
+		//      - 緩解方案：
+		//        a) 在實際 HTTP 請求時再次驗證 IP
+		//        b) 使用固定 IP 發送請求（避免二次解析）
+		//        c) 禁止 HTTP 重定向到私有 IP
+		//        d) 設置短 DNS TTL
+		//
+		//   3. 無法防止 IPv6 私有範圍
+		//      - 當前只檢查 IPv4 私有範圍
+		//      - 應添加：fc00::/7, fe80::/10 等
+		//
+		// 教學價值：
+		//   展示了 SSRF 防護的基本思路，但強調了實際生產環境的複雜性
+		ips, err := net.LookupIP(host)
+		if err != nil {
+			// DNS 解析失敗，安全起見拒絕
+			return true
+		}
+
+		// 檢查所有解析到的 IP
+		for _, resolvedIP := range ips {
+			if isPrivateIP(resolvedIP) {
+				return true
+			}
+		}
 		return false
 	}
 
+	// 檢查 IP 是否為私有
+	return isPrivateIP(ip)
+}
+
+// isPrivateIP 檢查 IP 是否為私有範圍
+func isPrivateIP(ip net.IP) bool {
 	// 檢查私有 IP 範圍
 	privateRanges := []string{
 		"10.0.0.0/8",     // 私有網段 A

@@ -90,10 +90,10 @@ type Counter struct {
 	batchBuffer chan *batchWrite // 異步同步通道
 	wg          sync.WaitGroup   // 等待 worker 退出
 
-	// 快取（降級優化）
-	cache *MemoryCache // 減少 PostgreSQL 壓力
-
-	recoverySignal chan struct{}
+	// 教學簡化：記憶體快取未實現
+	// 生產環境可添加 in-memory cache 減少 PostgreSQL 壓力
+	// 實現建議：LRU cache with TTL
+	// cache *MemoryCache
 }
 
 // batchWrite 批量寫入項目
@@ -108,27 +108,20 @@ type batchWrite struct {
 // NewCounter 創建計數器實例
 func NewCounter(redis *redis.Client, pg *pgxpool.Pool, config *Config, logger *slog.Logger) *Counter {
 	c := &Counter{
-		redis:          redis,
-		pg:             pg,
-		queries:        sqlc.New(pg),
-		config:         config,
-		logger:         logger,
-		batchBuffer:    make(chan *batchWrite, config.Counter.BatchSize*2),
-		recoverySignal: make(chan struct{}, 1),
+		redis:       redis,
+		pg:          pg,
+		queries:     sqlc.New(pg),
+		config:      config,
+		logger:      logger,
+		batchBuffer: make(chan *batchWrite, config.Counter.BatchSize*2),
 	}
 
-	// 初始化記憶體快取（如果啟用）
-	if config.Counter.EnableMemoryCache {
-		cacheSize := config.Counter.CacheSize
-		if cacheSize == 0 {
-			cacheSize = 10000 // 預設快取 10000 項
-		}
-		cacheTTL := config.Counter.CacheTTL
-		if cacheTTL == 0 {
-			cacheTTL = 5 * time.Minute // 預設 5 分鐘過期
-		}
-		c.cache = NewMemoryCache(cacheSize, cacheTTL)
-	}
+	// 教學簡化：記憶體快取未實現
+	// 生產環境若需要可在此處初始化 in-memory cache
+	// 用於降級模式時減少 PostgreSQL 壓力
+	// if config.Counter.EnableMemoryCache {
+	//     c.cache = NewMemoryCache(config.Counter.CacheSize, config.Counter.CacheTTL)
+	// }
 
 	// 設定預設 DAU 計數模式
 	if config.Counter.DAUCountMode == "" {
@@ -452,7 +445,10 @@ func (c *Counter) batchWorker() {
 			}
 		}
 
-		batch = batch[:0]
+		// 修復記憶體洩漏：建立新 slice 而非重用
+		//   問題：batch[:0] 保留底層陣列的指標，阻止垃圾回收
+		//   方案：建立新 slice 釋放舊指標
+		batch = make([]*batchWrite, 0, c.config.Counter.BatchSize)
 	}
 
 	for {

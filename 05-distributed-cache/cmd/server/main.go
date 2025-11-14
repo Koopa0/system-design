@@ -16,8 +16,12 @@ import (
 )
 
 // MockDataStore 模擬資料庫（用於展示快取策略）。
+// MockDataStore 是一個簡單的記憶體資料儲存（用於示範）。
+//
+// 並發安全：使用 RWMutex 保護 map 訪問
 type MockDataStore struct {
 	data map[string]interface{}
+	mu   sync.RWMutex
 }
 
 func NewMockDataStore() *MockDataStore {
@@ -27,6 +31,9 @@ func NewMockDataStore() *MockDataStore {
 }
 
 func (m *MockDataStore) Get(ctx context.Context, key string) (interface{}, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if value, ok := m.data[key]; ok {
 		return value, nil
 	}
@@ -34,11 +41,17 @@ func (m *MockDataStore) Get(ctx context.Context, key string) (interface{}, error
 }
 
 func (m *MockDataStore) Set(ctx context.Context, key string, value interface{}) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.data[key] = value
 	return nil
 }
 
 func (m *MockDataStore) Delete(ctx context.Context, key string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	delete(m.data, key)
 	return nil
 }
@@ -69,9 +82,9 @@ func demonstrateLRU() {
 	lru := cache.NewLRU(3)
 
 	// 寫入資料
-	lru.Put("a", "value_a")
-	lru.Put("b", "value_b")
-	lru.Put("c", "value_c")
+	lru.Set("a", "value_a")
+	lru.Set("b", "value_b")
+	lru.Set("c", "value_c")
 	log.Printf("已寫入 3 筆資料，當前快取：%v", lru.Keys())
 
 	// 存取 a（移到最前面）
@@ -79,7 +92,7 @@ func demonstrateLRU() {
 	log.Printf("存取 'a' 後，當前快取：%v", lru.Keys())
 
 	// 寫入 d（淘汰最久未使用的 b）
-	lru.Put("d", "value_d")
+	lru.Set("d", "value_d")
 	log.Printf("寫入 'd' 後，當前快取：%v (淘汰了 'b')", lru.Keys())
 }
 
@@ -90,9 +103,9 @@ func demonstrateLFU() {
 	lfu := cache.NewLFU(3)
 
 	// 寫入資料
-	lfu.Put("a", "value_a")
-	lfu.Put("b", "value_b")
-	lfu.Put("c", "value_c")
+	lfu.Set("a", "value_a")
+	lfu.Set("b", "value_b")
+	lfu.Set("c", "value_c")
 
 	// 多次存取 a（增加頻率）
 	lfu.Get("a")
@@ -107,7 +120,7 @@ func demonstrateLFU() {
 		stats.Size, stats.MinFreq, stats.FreqDist)
 
 	// 寫入 d（淘汰頻率最低的 c）
-	lfu.Put("d", "value_d")
+	lfu.Set("d", "value_d")
 	stats = lfu.GetStats()
 	log.Printf("寫入 'd' 後，頻率分布=%v (淘汰了頻率最低的 'c')", stats.FreqDist)
 }

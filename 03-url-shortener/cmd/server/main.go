@@ -135,13 +135,14 @@ func main() {
 
 	// 等待信號或錯誤
 	var shutdownReason string
+	var exitCode int
 	select {
 	case sig := <-quit:
 		shutdownReason = fmt.Sprintf("received signal: %s", sig.String())
+		exitCode = 0
 	case err := <-serverErr:
 		shutdownReason = fmt.Sprintf("server error: %v", err)
-		// 如果是啟動錯誤，設置退出碼（在關閉後）
-		defer os.Exit(1)
+		exitCode = 1 // 服務器錯誤時設置非零退出碼
 	}
 
 	logger.Info("initiating shutdown", "reason", shutdownReason)
@@ -152,9 +153,17 @@ func main() {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown error", "error", err)
+		exitCode = 1 // 關閉失敗也設置非零退出碼
 	}
 
 	logger.Info("server stopped gracefully")
+
+	// 修復 defer os.Exit(1) 誤用：
+	//   問題：defer 只在函數返回時執行，無法保證退出碼正確
+	//   方案：在所有清理完成後顯式調用 os.Exit
+	if exitCode != 0 {
+		os.Exit(exitCode)
+	}
 }
 
 // Config 應用配置
