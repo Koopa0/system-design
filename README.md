@@ -40,7 +40,7 @@ curl http://localhost:8080/api/v1/counter/online_players/increment
 
 **核心：**
 - Go 標準庫（`net/http`、`context`、`sync`）
-- PostgreSQL（持久化存儲）
+- PostgreSQL（持久化儲存）
 - Redis（快取、原子操作）
 
 **重點：** 使用 Go 標準庫展示慣用模式，最小化第三方依賴。
