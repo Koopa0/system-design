@@ -105,20 +105,26 @@ func main() {
 	//
 	// 系統設計：
 	//   - 使用 goroutine 啟動服務器
-	//   - 主 goroutine 等待終止信號
+	//   - 主 goroutine 等待終止信號或錯誤
 	//   - 收到信號後優雅關閉
+	//
+	// 錯誤處理：
+	//   - 使用 error channel 而非 os.Exit（避免跳過 defer）
+	//   - 服務器錯誤會觸發關閉流程
+	serverErr := make(chan error, 1)
 	go func() {
 		logger.Info("starting server", "addr", cfg.ServerAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("server error", "error", err)
-			os.Exit(1)
+			serverErr <- err
 		}
 	}()
 
-	// 9. 等待終止信號（優雅關閉）
+	// 9. 等待終止信號或服務器錯誤（優雅關閉）
 	//
 	// 系統設計考量：
 	//   - 信號處理：SIGINT（Ctrl+C）、SIGTERM（kill）
+	//   - 錯誤處理：服務器啟動失敗（如端口被佔用）
 	//   - 優雅關閉：
 	//     1. 停止接受新請求
 	//     2. 等待現有請求完成（帶超時）
@@ -126,9 +132,19 @@ func main() {
 	//   - 超時設置：30 秒（根據業務調整）
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-quit
 
-	logger.Info("received shutdown signal", "signal", sig.String())
+	// 等待信號或錯誤
+	var shutdownReason string
+	select {
+	case sig := <-quit:
+		shutdownReason = fmt.Sprintf("received signal: %s", sig.String())
+	case err := <-serverErr:
+		shutdownReason = fmt.Sprintf("server error: %v", err)
+		// 如果是啟動錯誤，設置退出碼（在關閉後）
+		defer os.Exit(1)
+	}
+
+	logger.Info("initiating shutdown", "reason", shutdownReason)
 
 	// 10. 優雅關閉服務器
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

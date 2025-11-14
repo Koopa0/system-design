@@ -172,6 +172,16 @@ func (c *Counter) Increment(ctx context.Context, name string, value int64, userI
 	today := time.Now().In(location).Format("20060102")
 
 	// 降級模式檢查
+	//
+	// 已知限制：
+	//   - 降級模式下，DAU 去重邏輯被繞過
+	//   - 原因：DAU 去重依賴 Redis SADD，PostgreSQL 無對應實作
+	//   - 影響：Redis 故障期間，同一用戶可能被重複計數
+	//   - 緩解方案：
+	//     1. 在 PostgreSQL 實作 DAU 去重表（user_id + date 唯一索引）
+	//     2. 使用應用層記憶體快取暫存已計數的用戶
+	//     3. 接受短暫的不準確性（Redis 恢復後自動修正）
+	//   - Trade-off：完全實作需要額外的表結構和複雜度
 	if c.fallbackMode.Load() {
 		return c.incrementPostgresSQLc(ctx, name, value)
 	}
@@ -220,6 +230,13 @@ func (c *Counter) Increment(ctx context.Context, name string, value int64, userI
 	}
 
 	// 異步同步到 PostgreSQL（最終一致性）
+	//
+	// 已知限制：
+	//   - DAU 計數器使用 batch merging 時，PostgreSQL 同步可能不準確
+	//   - 原因：batch worker 按計數器名稱合併，不保留每個用戶的操作
+	//   - 影響：極端情況下，同一批次內的多個用戶操作可能被合併
+	//   - 緩解：Redis 層的 DAU 統計始終準確（SADD 原子性）
+	//   - 建議：對 DAU 計數器禁用批處理，或使用專用的 DAU 服務
 	select {
 	case c.batchBuffer <- &batchWrite{
 		name:      name,
@@ -239,7 +256,12 @@ func (c *Counter) Increment(ctx context.Context, name string, value int64, userI
 		//   - Trade-off：
 		//     → 延遲增加（P99 可能達到 50-100ms）
 		//     → 換取系統穩定性（避免 OOM）
-		c.syncToPostgresSQLc(ctx, name, newVal)
+		if err := c.syncToPostgresSQLc(ctx, name, newVal); err != nil {
+			c.logger.Error("sync to postgres failed during backpressure",
+				"counter", name,
+				"value", newVal,
+				"error", err)
+		}
 	}
 
 	c.redisErrors.Store(0)

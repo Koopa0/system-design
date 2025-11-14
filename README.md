@@ -31,8 +31,8 @@
 | [01](./01-counter-service) | Counter Service | Redis、降級機制、批量優化 | 已完成 |
 | [02](./02-room-management) | Room Management | WebSocket、狀態機、並發控制 | 已完成 |
 | [03](./03-url-shortener) | URL Shortener | ID 生成、Base62、快取策略 | 已完成 |
-| [04](./04-rate-limiter) | Rate Limiter | 限流演算法、分散式限流 | 進行中 |
-| 05 | Distributed Cache | LRU、一致性雜湊 | 規劃中 |
+| [04](./04-rate-limiter) | Rate Limiter | 限流演算法、分散式限流 | 已完成 |
+| [05](./05-distributed-cache) | Distributed Cache | LRU、LFU、一致性雜湊 | 已完成 |
 
 ### Phase 2: 數據密集型
 
@@ -266,8 +266,8 @@ XX-system-name/
 
 ## 進度追蹤
 
-- 已完成：3 個案例
-- 進行中：1 個案例
+- 已完成：5 個案例（Phase 1 完成）
+- 進行中：0 個案例
 - 規劃中：20+ 個案例
 
 查看 [ROADMAP.md](./ROADMAP.md) 了解完整計畫。
