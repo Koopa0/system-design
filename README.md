@@ -49,9 +49,9 @@ curl http://localhost:8080/api/v1/counter/online_players/increment
 - Go 1.24+
 - Docker & Docker Compose（用於運行依賴服務）
 
-## 技術棧
+## 技術
 
-**核心技術：**
+**核心：**
 - Go 標準庫（`net/http`、`context`、`sync`）
 - PostgreSQL（持久化存儲）
 - Redis（快取、原子操作）
