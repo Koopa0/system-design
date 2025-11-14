@@ -156,6 +156,14 @@ func (wb *WriteBack) flushLoop() {
 }
 
 // flush 將髒資料刷新到資料庫。
+//
+// 修復 map 迭代問題：
+//   問題：在 range 迭代時刪除 map 元素可能導致未定義行為
+//   方案：先收集成功的 key，迭代結束後統一刪除
+//
+// 已知限制（教學簡化）：
+//   - 使用 context.Background()，無法取消/超時
+//   - 生產環境應使用 context.WithTimeout(ctx, 5*time.Second)
 func (wb *WriteBack) flush() {
 	wb.mu.Lock()
 	defer wb.mu.Unlock()
@@ -166,6 +174,8 @@ func (wb *WriteBack) flush() {
 
 	// 批量寫入資料庫
 	ctx := context.Background()
+	var keysToDelete []string
+
 	for key, value := range wb.dirtyKeys {
 		if err := wb.store.Set(ctx, key, value); err != nil {
 			// 寫入失敗，保留髒資料標記
@@ -173,7 +183,12 @@ func (wb *WriteBack) flush() {
 			continue
 		}
 
-		// 寫入成功，移除髒資料標記
+		// 寫入成功，記錄待刪除的 key
+		keysToDelete = append(keysToDelete, key)
+	}
+
+	// 統一刪除已成功同步的髒資料標記
+	for _, key := range keysToDelete {
 		delete(wb.dirtyKeys, key)
 	}
 }
