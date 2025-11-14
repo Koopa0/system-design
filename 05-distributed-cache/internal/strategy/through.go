@@ -1,6 +1,10 @@
 package strategy
 
-import "context"
+import (
+	"context"
+
+	"github.com/Koopa0/system-design/05-distributed-cache/internal/cache"
+)
 
 // WriteThrough 實作 Write-Through 策略（寫穿透）。
 //
@@ -41,14 +45,14 @@ import "context"
 //   - 寫入頻繁
 //   - 對寫入延遲敏感
 type WriteThrough struct {
-	cache Cache
+	cache cache.Cache
 	store DataStore
 }
 
 // NewWriteThrough 建立 Write-Through 策略。
-func NewWriteThrough(cache Cache, store DataStore) *WriteThrough {
+func NewWriteThrough(c cache.Cache, store DataStore) *WriteThrough {
 	return &WriteThrough{
-		cache: cache,
+		cache: c,
 		store: store,
 	}
 }

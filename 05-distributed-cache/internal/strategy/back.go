@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/Koopa0/system-design/05-distributed-cache/internal/cache"
 )
 
 // WriteBack 實作 Write-Back 策略（寫回）。
@@ -45,11 +47,11 @@ import (
 //   2. 使用 WAL（Write-Ahead Log）保證持久化
 //   3. 定期同步到資料庫
 type WriteBack struct {
-	cache       Cache
+	cache       cache.Cache
 	store       DataStore
 	dirtyKeys   map[string]interface{} // 髒資料：需要同步到資料庫
 	mu          sync.Mutex
-	flushTicker *time.Ticker          // 定期刷新計時器
+	flushTicker *time.Ticker // 定期刷新計時器
 	stopCh      chan struct{}
 }
 
@@ -59,9 +61,9 @@ type WriteBack struct {
 //   cache: 快取
 //   store: 資料庫
 //   flushInterval: 刷新間隔（如 5 秒）
-func NewWriteBack(cache Cache, store DataStore, flushInterval time.Duration) *WriteBack {
+func NewWriteBack(c cache.Cache, store DataStore, flushInterval time.Duration) *WriteBack {
 	wb := &WriteBack{
-		cache:       cache,
+		cache:       c,
 		store:       store,
 		dirtyKeys:   make(map[string]interface{}),
 		flushTicker: time.NewTicker(flushInterval),

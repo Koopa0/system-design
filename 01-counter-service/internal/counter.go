@@ -94,8 +94,6 @@ type Counter struct {
 	// 生產環境可添加 in-memory cache 減少 PostgreSQL 壓力
 	// 實現建議：LRU cache with TTL
 	// cache *MemoryCache
-
-	recoverySignal chan struct{}
 }
 
 // batchWrite 批量寫入項目
@@ -110,13 +108,12 @@ type batchWrite struct {
 // NewCounter 創建計數器實例
 func NewCounter(redis *redis.Client, pg *pgxpool.Pool, config *Config, logger *slog.Logger) *Counter {
 	c := &Counter{
-		redis:          redis,
-		pg:             pg,
-		queries:        sqlc.New(pg),
-		config:         config,
-		logger:         logger,
-		batchBuffer:    make(chan *batchWrite, config.Counter.BatchSize*2),
-		recoverySignal: make(chan struct{}, 1),
+		redis:       redis,
+		pg:          pg,
+		queries:     sqlc.New(pg),
+		config:      config,
+		logger:      logger,
+		batchBuffer: make(chan *batchWrite, config.Counter.BatchSize*2),
 	}
 
 	// 教學簡化：記憶體快取未實現

@@ -15,6 +15,8 @@ package strategy
 import (
 	"context"
 	"errors"
+
+	"github.com/Koopa0/system-design/05-distributed-cache/internal/cache"
 )
 
 // DataStore 是資料儲存介面（如資料庫）。
@@ -22,13 +24,6 @@ type DataStore interface {
 	Get(ctx context.Context, key string) (interface{}, error)
 	Set(ctx context.Context, key string, value interface{}) error
 	Delete(ctx context.Context, key string) error
-}
-
-// Cache 是快取介面。
-type Cache interface {
-	Get(key string) (interface{}, bool)
-	Set(key string, value interface{})
-	Delete(key string)
 }
 
 var (
@@ -48,6 +43,8 @@ var (
 // 寫入流程（兩種方案）：
 //   方案 A：先刪除快取，再更新資料庫（推薦）
 //   方案 B：先更新資料庫，再刪除快取
+//
+// 使用 cache.Cache 介面，支援任何快取實作（LRU/LFU/分散式）
 //
 // 為何是「刪除」而非「更新」快取？
 //   1. 避免併發問題：
@@ -79,14 +76,14 @@ var (
 //
 // 推薦：方案 A + 重試機制
 type CacheAside struct {
-	cache Cache
+	cache cache.Cache
 	store DataStore
 }
 
 // NewCacheAside 建立 Cache-Aside 策略。
-func NewCacheAside(cache Cache, store DataStore) *CacheAside {
+func NewCacheAside(c cache.Cache, store DataStore) *CacheAside {
 	return &CacheAside{
-		cache: cache,
+		cache: c,
 		store: store,
 	}
 }
