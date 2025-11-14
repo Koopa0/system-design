@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"context"
+	"time"
 )
 
 // Resolve 將短碼解析為長 URL
@@ -22,18 +23,18 @@ import (
 //  4. 返回長 URL
 //
 // 系統設計考量：
-//  - 性能優化：這是最高頻的操作（每次點擊短鏈都會調用）
-//  - 快取策略：存儲層應實現快取（如 Redis）
-//  - 點擊統計：異步更新，不影響重定向速度
-//  - 過期處理：返回 410 Gone（而非 404 Not Found）
+//   - 性能優化：這是最高頻的操作（每次點擊短鏈都會調用）
+//   - 快取策略：存儲層應實現快取（如 Redis）
+//   - 點擊統計：異步更新，不影響重定向速度
+//   - 過期處理：返回 410 Gone（而非 404 Not Found）
 //
 // 性能分析：
-//  - QPS 目標：10,000+（短網址服務的核心指標）
-//  - 延遲目標：< 10ms（p99）
-//  - 優化手段：
-//    1. Redis 快取（熱點數據）
-//    2. 異步統計（點擊計數）
-//    3. 連接池（資料庫）
+//   - QPS 目標：10,000+（短網址服務的核心指標）
+//   - 延遲目標：< 10ms（p99）
+//   - 優化手段：
+//     1. Redis 快取（熱點數據）
+//     2. 異步統計（點擊計數）
+//     3. 連接池（資料庫）
 func Resolve(ctx context.Context, store Store, shortCode string) (string, error) {
 	// 1. 從存儲層加載 URL 記錄
 	//
@@ -70,18 +71,21 @@ func Resolve(ctx context.Context, store Store, shortCode string) (string, error)
 	//
 	// 這裡簡化處理：啟動 goroutine 異步更新
 	go func() {
-		// 使用新的 context（避免父 context 取消影響）
+		// 使用獨立的 context 與超時設置
 		//
-		// 為什麼不用 ctx？
-		//   - ctx 會在請求結束時取消
+		// 為什麼不用父 context (ctx)？
+		//   - 父 ctx 會在 HTTP 請求結束時取消
 		//   - 異步操作需要獨立的生命週期
 		//
-		// 生產環境應該：
-		//   - context.WithTimeout(context.Background(), 5*time.Second)
-		//   - 記錄錯誤日誌
-		//   - 監控失敗率
-		_ = store.IncrementClicks(context.Background(), shortCode)
+		// 為什麼設置超時（5 秒）？
+		//   - 防止 goroutine 洩漏（如果數據庫卡住）
+		//   - 點擊統計不重要，快速失敗即可
+		clickCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_ = store.IncrementClicks(clickCtx, shortCode)
 		// 忽略錯誤（統計失敗不影響重定向）
+		// 生產環境應該：記錄錯誤日誌、監控失敗率
 	}()
 
 	// 4. 返回長 URL

@@ -40,12 +40,12 @@ const (
 	sequenceBits  = 12 // 序列號佔 12 bit
 
 	// 最大值計算（2^n - 1）
-	maxMachineID = (1 << machineBits) - 1 // 1023
+	maxMachineID = (1 << machineBits) - 1  // 1023
 	maxSequence  = (1 << sequenceBits) - 1 // 4095
 
 	// 位移量
-	machineShift    = sequenceBits                    // 12
-	timestampShift  = sequenceBits + machineBits      // 22
+	machineShift   = sequenceBits               // 12
+	timestampShift = sequenceBits + machineBits // 22
 )
 
 var (
@@ -162,9 +162,25 @@ func (g *Generator) MustGenerate() int64 {
 }
 
 // waitNextMillisecond 等待直到下一毫秒
+// waitNextMillisecond 等待下一毫秒
+//
+// 系統設計考量：
+//   - 為什麼需要等待？
+//     → 同一毫秒內序列號溢出（生成了 4096 個 ID）
+//     → 必須等到下一毫秒才能繼續生成
+//   - 性能優化：
+//     → 添加短暫 sleep（避免 CPU 空轉）
+//     → 10 微秒足夠（1 毫秒 = 1000 微秒）
 func (g *Generator) waitNextMillisecond(lastTimestamp int64) int64 {
 	timestamp := currentMilliseconds()
 	for timestamp <= lastTimestamp {
+		// 短暫休眠，避免 CPU 空轉（busy-wait）
+		//
+		// 為什麼休眠 10 微秒？
+		//   - 太短：仍然浪費 CPU
+		//   - 太長：增加延遲
+		//   - 10μs：平衡 CPU 使用與響應時間
+		time.Sleep(10 * time.Microsecond)
 		timestamp = currentMilliseconds()
 	}
 	return timestamp
@@ -202,11 +218,11 @@ func ParseIDToTime(id int64) time.Time {
 
 // Info 返回 Snowflake ID 的詳細信息（用於調試）
 type Info struct {
-	ID         int64     `json:"id"`
-	Timestamp  int64     `json:"timestamp"`
-	Time       time.Time `json:"time"`
-	MachineID  int64     `json:"machine_id"`
-	Sequence   int64     `json:"sequence"`
+	ID        int64     `json:"id"`
+	Timestamp int64     `json:"timestamp"`
+	Time      time.Time `json:"time"`
+	MachineID int64     `json:"machine_id"`
+	Sequence  int64     `json:"sequence"`
 }
 
 // GetInfo 獲取 Snowflake ID 的詳細信息

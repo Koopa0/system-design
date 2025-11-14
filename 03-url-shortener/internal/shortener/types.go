@@ -9,6 +9,7 @@ import (
 // URL 表示一個短網址記錄
 //
 // 數據模型設計：
+//
 //   - ID：分布式唯一標識（Snowflake）
 //     → 全局唯一、趨勢遞增（有利於資料庫索引）
 //     → 包含時間戳（可排序、可追溯）
@@ -25,11 +26,11 @@ import (
 //     → 設計問題：主動刪除 vs 惰性刪除？
 //     → 選擇：惰性刪除（訪問時檢查）+ 定期清理
 type URL struct {
-	ID        int64      `json:"id"`         // Snowflake ID
-	ShortCode string     `json:"short_code"` // Base62 短碼（如 "8M0kX"）
-	LongURL   string     `json:"long_url"`   // 原始 URL
-	Clicks    int64      `json:"clicks"`     // 點擊次數
-	CreatedAt time.Time  `json:"created_at"` // 創建時間
+	ID        int64      `json:"id"`                   // Snowflake ID
+	ShortCode string     `json:"short_code"`           // Base62 短碼（如 "8M0kX"）
+	LongURL   string     `json:"long_url"`             // 原始 URL
+	Clicks    int64      `json:"clicks"`               // 點擊次數
+	CreatedAt time.Time  `json:"created_at"`           // 創建時間
 	ExpiresAt *time.Time `json:"expires_at,omitempty"` // 過期時間（可選）
 }
 

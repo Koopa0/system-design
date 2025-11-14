@@ -1,10 +1,11 @@
 // Package storage 實現各種存儲後端
 //
 // 存儲架構演進：
-//   V1：Memory（單機、開發測試）
-//   V2：PostgreSQL（持久化、生產環境）
-//   V3：PostgreSQL + Redis（快取加速）
-//   V4：分片 PostgreSQL + Redis Cluster（水平擴展）
+//
+//	V1：Memory（單機、開發測試）
+//	V2：PostgreSQL（持久化、生產環境）
+//	V3：PostgreSQL + Redis（快取加速）
+//	V4：分片 PostgreSQL + Redis Cluster（水平擴展）
 package storage
 
 import (
@@ -22,15 +23,16 @@ import (
 //   - 演示系統設計概念
 //
 // 系統設計權衡：
-//   ✅ 優點：
-//      - 零延遲（無網絡開銷）
-//      - 零依賴（不需要資料庫）
-//      - 簡單直觀
 //
-//   ❌ 缺點：
-//      - 不持久化（重啟丟失）
-//      - 無法分布式（單機限制）
-//      - 內存受限（無法支撐大規模）
+//	✅ 優點：
+//	   - 零延遲（無網絡開銷）
+//	   - 零依賴（不需要資料庫）
+//	   - 簡單直觀
+//
+//	❌ 缺點：
+//	   - 不持久化（重啟丟失）
+//	   - 無法分布式（單機限制）
+//	   - 內存受限（無法支撐大規模）
 //
 // 何時使用：
 //   - 開發階段：快速驗證邏輯
@@ -63,6 +65,13 @@ func (m *Memory) Save(ctx context.Context, url *shortener.URL) error {
 }
 
 // Load 加載短網址
+//
+// 系統設計考量：
+//   - 並發安全：使用 RLock（允許多個讀者並發）
+//   - 數據隔離：返回副本而非指針（防止外部修改）
+//     → 為什麼返回副本？
+//     → 防止調用者直接修改 Clicks 等字段（繞過 IncrementClicks）
+//     → 避免數據競爭（data race）
 func (m *Memory) Load(ctx context.Context, shortCode string) (*shortener.URL, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -76,7 +85,9 @@ func (m *Memory) Load(ctx context.Context, shortCode string) (*shortener.URL, er
 		return nil, shortener.ErrExpired
 	}
 
-	return url, nil
+	// 返回副本，防止外部修改
+	urlCopy := *url
+	return &urlCopy, nil
 }
 
 // IncrementClicks 增加點擊計數

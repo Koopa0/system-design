@@ -103,12 +103,12 @@ func TestRoom_AddPlayer(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, 1, room.GetPlayerCount())
 				assert.Equal(t, "player_001", room.HostID)
-				
+
 				// 驗證玩家資訊
 				room.Mu.RLock()
 				player := room.Players["player_001"]
 				room.Mu.RUnlock()
-				
+
 				assert.NotNil(t, player)
 				assert.True(t, player.IsHost)
 				assert.Equal(t, "玩家一", player.Name)
@@ -126,11 +126,11 @@ func TestRoom_AddPlayer(t *testing.T) {
 			validate: func(t *testing.T, room *internal.Room, err error) {
 				require.NoError(t, err)
 				assert.Equal(t, 2, room.GetPlayerCount())
-				
+
 				room.Mu.RLock()
 				player := room.Players["player_002"]
 				room.Mu.RUnlock()
-				
+
 				assert.NotNil(t, player)
 				assert.False(t, player.IsHost)
 			},
@@ -229,7 +229,7 @@ func TestRoom_RemovePlayer(t *testing.T) {
 			validate: func(t *testing.T, room *internal.Room, err error) {
 				require.NoError(t, err)
 				assert.Equal(t, 1, room.GetPlayerCount())
-				
+
 				room.Mu.RLock()
 				_, exists := room.Players["player_002"]
 				room.Mu.RUnlock()
@@ -250,7 +250,7 @@ func TestRoom_RemovePlayer(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, 1, room.GetPlayerCount())
 				assert.Equal(t, "player_002", room.HostID)
-				
+
 				room.Mu.RLock()
 				player := room.Players["player_002"]
 				room.Mu.RUnlock()
@@ -317,20 +317,20 @@ func TestRoom_RemovePlayer(t *testing.T) {
 func TestRoom_StateTransitions(t *testing.T) {
 	t.Run("complete game flow", func(t *testing.T) {
 		room := internal.NewRoom("room_001", "測試房間", "ABC123", 2, "", internal.ModeCoop, "normal")
-		
+
 		// 初始狀態應該是 Waiting
 		assert.Equal(t, internal.StatusWaiting, room.Status)
-		
+
 		// 加入玩家
 		err := room.AddPlayer("player_001", "玩家一")
 		require.NoError(t, err)
 		assert.Equal(t, internal.StatusWaiting, room.Status)
-		
+
 		// 加滿玩家，狀態變為 Preparing
 		err = room.AddPlayer("player_002", "玩家二")
 		require.NoError(t, err)
 		assert.Equal(t, internal.StatusPreparing, room.Status)
-		
+
 		// 選擇歌曲
 		song := &internal.Song{
 			ID:         "song_001",
@@ -341,21 +341,21 @@ func TestRoom_StateTransitions(t *testing.T) {
 		err = room.SelectSong("player_001", song)
 		require.NoError(t, err)
 		assert.NotNil(t, room.SelectedSong)
-		
+
 		// 玩家準備
 		err = room.SetPlayerReady("player_001", true)
 		require.NoError(t, err)
 		assert.Equal(t, internal.StatusPreparing, room.Status)
-		
+
 		err = room.SetPlayerReady("player_002", true)
 		require.NoError(t, err)
 		assert.Equal(t, internal.StatusReady, room.Status)
-		
+
 		// 開始遊戲
 		err = room.StartGame("player_001")
 		require.NoError(t, err)
 		assert.Equal(t, internal.StatusPlaying, room.Status)
-		
+
 		// 結束遊戲
 		room.EndGame()
 		assert.Equal(t, internal.StatusFinished, room.Status)
@@ -365,11 +365,11 @@ func TestRoom_StateTransitions(t *testing.T) {
 		room := internal.NewRoom("room_002", "測試房間", "ABC123", 2, "", internal.ModeCoop, "normal")
 		room.AddPlayer("player_001", "玩家一")
 		room.AddPlayer("player_002", "玩家二")
-		
+
 		// 選擇歌曲但不準備
 		song := &internal.Song{ID: "song_001", Name: "測試歌曲"}
 		room.SelectSong("player_001", song)
-		
+
 		// 嘗試開始遊戲
 		err := room.StartGame("player_001")
 		assert.Error(t, err)
@@ -380,14 +380,14 @@ func TestRoom_StateTransitions(t *testing.T) {
 		room := internal.NewRoom("room_003", "測試房間", "ABC123", 2, "", internal.ModeCoop, "normal")
 		room.AddPlayer("player_001", "玩家一") // 房主
 		room.AddPlayer("player_002", "玩家二")
-		
+
 		song := &internal.Song{ID: "song_001", Name: "測試歌曲"}
-		
+
 		// 非房主嘗試選歌
 		err := room.SelectSong("player_002", song)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "只有房主可以選歌")
-		
+
 		// 房主選歌
 		err = room.SelectSong("player_001", song)
 		assert.NoError(t, err)
@@ -397,18 +397,18 @@ func TestRoom_StateTransitions(t *testing.T) {
 		room := internal.NewRoom("room_004", "測試房間", "ABC123", 2, "", internal.ModeCoop, "normal")
 		room.AddPlayer("player_001", "玩家一")
 		room.AddPlayer("player_002", "玩家二")
-		
+
 		// 準備遊戲
 		song := &internal.Song{ID: "song_001", Name: "測試歌曲"}
 		room.SelectSong("player_001", song)
 		room.SetPlayerReady("player_001", true)
 		room.SetPlayerReady("player_002", true)
-		
+
 		// 非房主嘗試開始
 		err := room.StartGame("player_002")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "只有房主可以開始遊戲")
-		
+
 		// 房主開始
 		err = room.StartGame("player_001")
 		assert.NoError(t, err)
@@ -419,10 +419,10 @@ func TestRoom_StateTransitions(t *testing.T) {
 func TestRoom_ConcurrentOperations(t *testing.T) {
 	t.Run("concurrent add players", func(t *testing.T) {
 		room := internal.NewRoom("room_001", "測試房間", "ABC123", 4, "", internal.ModeCoop, "normal")
-		
+
 		var wg sync.WaitGroup
 		errors := make([]error, 4)
-		
+
 		// 同時加入 4 個玩家
 		for i := 0; i < 4; i++ {
 			wg.Add(1)
@@ -433,30 +433,30 @@ func TestRoom_ConcurrentOperations(t *testing.T) {
 				errors[idx] = room.AddPlayer(playerID, playerName)
 			}(i)
 		}
-		
+
 		wg.Wait()
-		
+
 		// 應該全部成功
 		for _, err := range errors {
 			assert.NoError(t, err)
 		}
-		
+
 		assert.Equal(t, 4, room.GetPlayerCount())
 		assert.Equal(t, internal.StatusPreparing, room.Status)
 	})
 
 	t.Run("concurrent add and remove", func(t *testing.T) {
 		room := internal.NewRoom("room_002", "測試房間", "ABC123", 10, "", internal.ModeCoop, "normal")
-		
+
 		var wg sync.WaitGroup
-		
+
 		// 先加入一些玩家
 		for i := 0; i < 5; i++ {
 			playerID := fmt.Sprintf("player_%03d", i)
 			playerName := fmt.Sprintf("玩家%d", i)
 			room.AddPlayer(playerID, playerName)
 		}
-		
+
 		// 同時加入和移除玩家
 		for i := 0; i < 10; i++ {
 			wg.Add(1)
@@ -474,14 +474,14 @@ func TestRoom_ConcurrentOperations(t *testing.T) {
 				}
 			}(i)
 		}
-		
+
 		wg.Wait()
-		
+
 		// 驗證房間狀態一致性
 		count := room.GetPlayerCount()
 		assert.GreaterOrEqual(t, count, 0)
 		assert.LessOrEqual(t, count, 10)
-		
+
 		// 驗證房主存在（如果有玩家）
 		if count > 0 {
 			assert.NotEmpty(t, room.HostID)
@@ -491,40 +491,40 @@ func TestRoom_ConcurrentOperations(t *testing.T) {
 
 	t.Run("concurrent ready state changes", func(t *testing.T) {
 		room := internal.NewRoom("room_003", "測試房間", "ABC123", 4, "", internal.ModeCoop, "normal")
-		
+
 		// 加入玩家
 		for i := 0; i < 4; i++ {
 			playerID := fmt.Sprintf("player_%03d", i)
 			playerName := fmt.Sprintf("玩家%d", i)
 			room.AddPlayer(playerID, playerName)
 		}
-		
+
 		// 選擇歌曲
 		song := &internal.Song{ID: "song_001", Name: "測試歌曲"}
 		room.SelectSong("player_000", song)
-		
+
 		var wg sync.WaitGroup
-		
+
 		// 同時改變準備狀態
 		for i := 0; i < 4; i++ {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
 				playerID := fmt.Sprintf("player_%03d", idx)
-				
+
 				// 多次改變狀態
 				for j := 0; j < 5; j++ {
 					room.SetPlayerReady(playerID, j%2 == 0)
 					time.Sleep(time.Millisecond)
 				}
-				
+
 				// 最終設為準備
 				room.SetPlayerReady(playerID, true)
 			}(i)
 		}
-		
+
 		wg.Wait()
-		
+
 		// 所有玩家應該都準備好了
 		assert.Equal(t, internal.StatusReady, room.Status)
 	})
@@ -533,40 +533,40 @@ func TestRoom_ConcurrentOperations(t *testing.T) {
 // TestRoom_PasswordValidation 測試密碼驗證
 func TestRoom_PasswordValidation(t *testing.T) {
 	tests := []struct {
-		name         string
-		roomPassword string
+		name          string
+		roomPassword  string
 		inputPassword string
-		expected     bool
+		expected      bool
 	}{
 		{
-			name:         "no password required",
-			roomPassword: "",
+			name:          "no password required",
+			roomPassword:  "",
 			inputPassword: "",
-			expected:     true,
+			expected:      true,
 		},
 		{
-			name:         "no password with any input",
-			roomPassword: "",
+			name:          "no password with any input",
+			roomPassword:  "",
 			inputPassword: "anything",
-			expected:     true,
+			expected:      true,
 		},
 		{
-			name:         "correct password",
-			roomPassword: "secret123",
+			name:          "correct password",
+			roomPassword:  "secret123",
 			inputPassword: "secret123",
-			expected:     true,
+			expected:      true,
 		},
 		{
-			name:         "incorrect password",
-			roomPassword: "secret123",
+			name:          "incorrect password",
+			roomPassword:  "secret123",
 			inputPassword: "wrong",
-			expected:     false,
+			expected:      false,
 		},
 		{
-			name:         "empty input with password",
-			roomPassword: "secret123",
+			name:          "empty input with password",
+			roomPassword:  "secret123",
 			inputPassword: "",
-			expected:     false,
+			expected:      false,
 		},
 	}
 
@@ -583,16 +583,16 @@ func TestRoom_PasswordValidation(t *testing.T) {
 func TestRoom_EventChannel(t *testing.T) {
 	t.Run("receive player joined event", func(t *testing.T) {
 		room := internal.NewRoom("room_001", "測試房間", "ABC123", 4, "", internal.ModeCoop, "normal")
-		
+
 		// 監聽事件
 		eventCh := room.Events()
-		
+
 		// 加入玩家
 		go func() {
 			time.Sleep(10 * time.Millisecond)
 			room.AddPlayer("player_001", "玩家一")
 		}()
-		
+
 		// 等待事件
 		select {
 		case event := <-eventCh:
@@ -608,18 +608,18 @@ func TestRoom_EventChannel(t *testing.T) {
 	t.Run("receive multiple events", func(t *testing.T) {
 		room := internal.NewRoom("room_002", "測試房間", "ABC123", 2, "", internal.ModeCoop, "normal")
 		eventCh := room.Events()
-		
+
 		// 產生多個事件
 		go func() {
 			room.AddPlayer("player_001", "玩家一")
 			room.AddPlayer("player_002", "玩家二")
 			room.RemovePlayer("player_002")
 		}()
-		
+
 		// 收集事件
 		events := make([]internal.Event, 0)
 		timeout := time.After(100 * time.Millisecond)
-		
+
 		for {
 			select {
 			case event := <-eventCh:
@@ -628,16 +628,16 @@ func TestRoom_EventChannel(t *testing.T) {
 				goto done
 			}
 		}
-		
+
 	done:
 		assert.GreaterOrEqual(t, len(events), 3)
-		
+
 		// 驗證事件類型
 		eventTypes := make([]string, len(events))
 		for i, e := range events {
 			eventTypes[i] = e.Type
 		}
-		
+
 		assert.Contains(t, eventTypes, "player_joined")
 		assert.Contains(t, eventTypes, "player_left")
 	})
@@ -652,12 +652,12 @@ func TestRoom_Expiration(t *testing.T) {
 
 	t.Run("empty room expires after inactivity", func(t *testing.T) {
 		room := internal.NewRoom("room_002", "測試房間", "ABC123", 4, "", internal.ModeCoop, "normal")
-		
+
 		// 模擬時間流逝（需要修改 IsExpired 方法以支援測試）
 		// 這裡只能測試基本邏輯
 		room.AddPlayer("player_001", "玩家一")
 		room.RemovePlayer("player_001")
-		
+
 		// 空房間但剛被操作過，不應該過期
 		assert.False(t, room.IsExpired())
 	})
@@ -666,11 +666,11 @@ func TestRoom_Expiration(t *testing.T) {
 // TestRoom_GetState 測試獲取房間狀態
 func TestRoom_GetState(t *testing.T) {
 	room := internal.NewRoom("room_001", "測試房間", "ABC123", 2, "password", internal.ModeCoop, "hard")
-	
+
 	// 加入玩家
 	room.AddPlayer("player_001", "玩家一")
 	room.AddPlayer("player_002", "玩家二")
-	
+
 	// 選擇歌曲
 	song := &internal.Song{
 		ID:         "song_001",
@@ -679,10 +679,10 @@ func TestRoom_GetState(t *testing.T) {
 		Duration:   180,
 	}
 	room.SelectSong("player_001", song)
-	
+
 	// 獲取狀態
 	state := room.GetState()
-	
+
 	// 驗證狀態
 	assert.Equal(t, "room_001", state["room_id"])
 	assert.Equal(t, "測試房間", state["room_name"])
@@ -693,12 +693,12 @@ func TestRoom_GetState(t *testing.T) {
 	assert.Equal(t, "hard", state["difficulty"])
 	assert.Equal(t, internal.StatusPreparing, state["status"])
 	assert.Equal(t, "player_001", state["host_id"])
-	
+
 	// 驗證玩家列表
 	players, ok := state["players"].([]*internal.Player)
 	assert.True(t, ok)
 	assert.Len(t, players, 2)
-	
+
 	// 驗證歌曲
 	stateSong, ok := state["selected_song"].(*internal.Song)
 	assert.True(t, ok)
@@ -708,13 +708,13 @@ func TestRoom_GetState(t *testing.T) {
 // TestRoom_Close 測試關閉房間
 func TestRoom_Close(t *testing.T) {
 	room := internal.NewRoom("room_001", "測試房間", "ABC123", 4, "", internal.ModeCoop, "normal")
-	
+
 	// 先監聽事件通道
 	eventCh := room.Events()
-	
+
 	// 加入玩家
 	room.AddPlayer("player_001", "玩家一")
-	
+
 	// 清空 player_joined 事件
 	select {
 	case <-eventCh:
@@ -722,13 +722,13 @@ func TestRoom_Close(t *testing.T) {
 	case <-time.After(10 * time.Millisecond):
 		// 沒有事件也沒關係
 	}
-	
+
 	// 關閉房間
 	go func() {
 		time.Sleep(10 * time.Millisecond)
 		room.Close("test_reason")
 	}()
-	
+
 	// 等待關閉事件
 	select {
 	case event := <-eventCh:
@@ -739,13 +739,13 @@ func TestRoom_Close(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("沒有收到關閉事件")
 	}
-	
+
 	// 等待狀態更新
 	time.Sleep(20 * time.Millisecond)
-	
+
 	// 驗證狀態
 	assert.Equal(t, internal.StatusClosed, room.Status)
-	
+
 	// 事件通道應該已關閉
 	select {
 	case _, ok := <-eventCh:
@@ -758,10 +758,10 @@ func TestRoom_Close(t *testing.T) {
 // TestRoom_IsExpired 測試房間過期判斷
 func TestRoom_IsExpired(t *testing.T) {
 	room := internal.NewRoom("room_001", "測試房間", "ABC123", 4, "", internal.ModeCoop, "normal")
-	
+
 	// 新房間不應該過期
 	assert.False(t, room.IsExpired())
-	
+
 	// 關閉的房間應該過期
 	room.Close("測試")
 	assert.True(t, room.IsExpired())

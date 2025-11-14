@@ -3,6 +3,7 @@
 // 教學重點：
 //
 //  1. 使用 net/http 標準庫（不依賴框架）
+//
 //  2. Go 1.22+ 的增強路由功能：
 //     - 支持方法路由：GET、POST
 //     - 支持路徑參數：/{shortCode}
@@ -171,9 +172,9 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 // Response: 302 Found, Location: https://...
 //
 // 系統設計要點：
-//  - 使用 302（臨時重定向）而非 301（永久重定向）
-//  - 為什麼？302 每次都經過服務器，可以統計點擊
-//  - 301 會被瀏覽器快取，後續訪問不經過服務器
+//   - 使用 302（臨時重定向）而非 301（永久重定向）
+//   - 為什麼？302 每次都經過服務器，可以統計點擊
+//   - 301 會被瀏覽器快取，後續訪問不經過服務器
 func (h *Handler) redirect(w http.ResponseWriter, r *http.Request) {
 	// 1. 獲取路徑參數（Go 1.22+ 功能）
 	shortCode := r.PathValue("shortCode")
@@ -278,10 +279,30 @@ func (h *Handler) errorJSON(w http.ResponseWriter, message string, status int) {
 // 系統設計考量：
 //   - 生產環境應使用配置的域名（如 short.url）
 //   - 這裡簡化處理：使用請求的 Host
+//
+// buildShortURL 構建完整的短網址
+//
+// 系統設計考量：
+//   - Scheme 檢測：支持反向代理場景
+//     → 優先檢查 X-Forwarded-Proto（代理轉發的原始協議）
+//     → 回退到 r.TLS（直連場景）
+//   - 部署場景：
+//     → 開發環境：直連（http://localhost:8080）
+//     → 生產環境：代理（nginx → https → 服務）
 func buildShortURL(r *http.Request, shortCode string) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
+	// 檢查代理轉發的原始協議（常見於生產環境）
+	//
+	// 為什麼優先檢查 X-Forwarded-Proto？
+	//   - 反向代理（nginx/Traefik）會設置此 header
+	//   - 表示客戶端到代理的原始協議（https）
+	//   - r.TLS 為 nil（代理到服務是 http）
+	scheme := r.Header.Get("X-Forwarded-Proto")
+	if scheme == "" {
+		// 直連場景：根據 TLS 判斷
+		scheme = "http"
+		if r.TLS != nil {
+			scheme = "https"
+		}
 	}
 	return scheme + "://" + r.Host + "/" + shortCode
 }

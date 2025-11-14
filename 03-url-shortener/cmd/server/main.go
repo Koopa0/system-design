@@ -21,10 +21,10 @@ import (
 // main 函數：應用程序入口
 //
 // 系統設計重點：
-//   1. 依賴初始化順序（資料庫 → ID生成器 → 存儲層 → HTTP處理）
-//   2. 優雅關閉（Graceful Shutdown）
-//   3. 配置管理（環境變量 vs 配置文件）
-//   4. 錯誤處理與日誌
+//  1. 依賴初始化順序（資料庫 → ID生成器 → 存儲層 → HTTP處理）
+//  2. 優雅關閉（Graceful Shutdown）
+//  3. 配置管理（環境變量 vs 配置文件）
+//  4. 錯誤處理與日誌
 func main() {
 	// 1. 初始化日誌
 	//
@@ -162,12 +162,31 @@ type Config struct {
 //   - 默認值：便於本地開發
 //   - 環境變量：生產環境覆蓋默認值
 //   - 驗證：確保配置合法（如端口範圍）
+//
+// loadConfig 加載配置
+//
+// 系統設計考量：
+//   - MachineID 範圍：0-1023（Snowflake 要求）
+//   - 無效配置：立即失敗（Fail-Fast）
+//   - 環境變量：12-Factor App 原則
 func loadConfig() *Config {
-	return &Config{
+	cfg := &Config{
 		ServerAddr:  getEnv("SERVER_ADDR", ":8080"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/urlshortener?sslmode=disable"),
 		MachineID:   getEnvInt64("MACHINE_ID", 1),
 	}
+
+	// 驗證 MachineID（Snowflake 要求：0-1023）
+	//
+	// 為什麼是 0-1023？
+	//   - Snowflake ID 分配 10 位給機器 ID（2^10 = 1024）
+	//   - 超出範圍會導致 ID 衝突或生成失敗
+	if cfg.MachineID < 0 || cfg.MachineID > 1023 {
+		slog.Error("invalid MachineID", "value", cfg.MachineID, "valid_range", "0-1023")
+		os.Exit(1)
+	}
+
+	return cfg
 }
 
 // getEnv 獲取環境變量（帶默認值）
@@ -192,18 +211,19 @@ func getEnvInt64(key string, defaultValue int64) int64 {
 // connectPostgres 連接 PostgreSQL
 //
 // 系統設計考量：
-//   1. 連接池設置：
-//      - MaxOpenConns：最大打開連接數（避免耗盡資料庫連接）
-//      - MaxIdleConns：最大空閒連接數（複用連接）
-//      - ConnMaxLifetime：連接最大生命週期（避免長連接問題）
 //
-//   2. 超時設置：
-//      - connect_timeout：連接超時（秒）
-//      - statement_timeout：SQL 執行超時（毫秒）
+//  1. 連接池設置：
+//     - MaxOpenConns：最大打開連接數（避免耗盡資料庫連接）
+//     - MaxIdleConns：最大空閒連接數（複用連接）
+//     - ConnMaxLifetime：連接最大生命週期（避免長連接問題）
 //
-//   3. 健康檢查：
-//      - 啟動時 Ping 驗證連接
-//      - 運行時定期健康檢查
+//  2. 超時設置：
+//     - connect_timeout：連接超時（秒）
+//     - statement_timeout：SQL 執行超時（毫秒）
+//
+//  3. 健康檢查：
+//     - 啟動時 Ping 驗證連接
+//     - 運行時定期健康檢查
 func connectPostgres(databaseURL string, logger *slog.Logger) (*sql.DB, error) {
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {

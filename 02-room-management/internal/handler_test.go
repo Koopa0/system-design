@@ -480,7 +480,7 @@ func TestHandler_ListRooms(t *testing.T) {
 
 			var resp map[string]any
 			err := json.Unmarshal(w.Body.Bytes(), &resp)
-	require.NoError(t, err)
+			require.NoError(t, err)
 			tt.validate(t, resp)
 		})
 	}
@@ -933,13 +933,13 @@ func TestHandler_JoinRoomErrors(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	manager := internal.NewManager(logger)
 	defer manager.Stop()
-	
+
 	handler := internal.NewHandler(manager, logger)
 	router := handler.Routes()
-	
+
 	// 創建一個房間
 	room, _ := manager.CreateRoom("測試房間", 2, "password", internal.ModeCoop, "normal")
-	
+
 	tests := []struct {
 		name           string
 		roomID         string
@@ -948,11 +948,11 @@ func TestHandler_JoinRoomErrors(t *testing.T) {
 		expectedError  string
 	}{
 		{
-			name:   "無效的請求體",
-			roomID: room.ID,
-			requestBody: "invalid json",
+			name:           "無效的請求體",
+			roomID:         room.ID,
+			requestBody:    "invalid json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "無效的請求格式",
+			expectedError:  "無效的請求格式",
 		},
 		{
 			name:   "缺少玩家ID",
@@ -961,7 +961,7 @@ func TestHandler_JoinRoomErrors(t *testing.T) {
 				"player_name": "玩家",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "玩家資訊不完整",
+			expectedError:  "玩家資訊不完整",
 		},
 		{
 			name:   "錯誤的密碼",
@@ -972,7 +972,7 @@ func TestHandler_JoinRoomErrors(t *testing.T) {
 				"password":    "wrong",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "密碼錯誤",
+			expectedError:  "密碼錯誤",
 		},
 		{
 			name:   "房間不存在",
@@ -982,21 +982,21 @@ func TestHandler_JoinRoomErrors(t *testing.T) {
 				"player_name": "玩家一",
 			},
 			expectedStatus: http.StatusNotFound,
-			expectedError: "房間不存在",
+			expectedError:  "房間不存在",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.requestBody)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms/"+tt.roomID+"/join", bytes.NewReader(body))
 			req.SetPathValue("room_id", tt.roomID)
 			rec := httptest.NewRecorder()
-			
+
 			router.ServeHTTP(rec, req)
-			
+
 			assert.Equal(t, tt.expectedStatus, rec.Code)
-			
+
 			var resp map[string]any
 			err := json.Unmarshal(rec.Body.Bytes(), &resp)
 			require.NoError(t, err)
@@ -1010,13 +1010,13 @@ func TestHandler_LeaveRoomErrors(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	manager := internal.NewManager(logger)
 	defer manager.Stop()
-	
+
 	handler := internal.NewHandler(manager, logger)
 	router := handler.Routes()
-	
+
 	// 創建一個房間
 	room, _ := manager.CreateRoom("測試房間", 2, "", internal.ModeCoop, "normal")
-	
+
 	tests := []struct {
 		name           string
 		roomID         string
@@ -1025,18 +1025,18 @@ func TestHandler_LeaveRoomErrors(t *testing.T) {
 		expectedError  string
 	}{
 		{
-			name:   "無效的請求體",
-			roomID: room.ID,
-			requestBody: "invalid json",
+			name:           "無效的請求體",
+			roomID:         room.ID,
+			requestBody:    "invalid json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "無效的請求格式",
+			expectedError:  "無效的請求格式",
 		},
 		{
-			name:   "缺少玩家ID",
-			roomID: room.ID,
-			requestBody: map[string]any{},
+			name:           "缺少玩家ID",
+			roomID:         room.ID,
+			requestBody:    map[string]any{},
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "玩家ID為必填",
+			expectedError:  "玩家ID為必填",
 		},
 		{
 			name:   "房間不存在",
@@ -1045,7 +1045,7 @@ func TestHandler_LeaveRoomErrors(t *testing.T) {
 				"player_id": "player_001",
 			},
 			expectedStatus: http.StatusNotFound,
-			expectedError: "房間不存在",
+			expectedError:  "房間不存在",
 		},
 		{
 			name:   "玩家不在房間內",
@@ -1054,21 +1054,21 @@ func TestHandler_LeaveRoomErrors(t *testing.T) {
 				"player_id": "player_not_in_room",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "玩家不在房間內",
+			expectedError:  "玩家不在房間內",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.requestBody)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms/"+tt.roomID+"/leave", bytes.NewReader(body))
 			req.SetPathValue("room_id", tt.roomID)
 			rec := httptest.NewRecorder()
-			
+
 			router.ServeHTTP(rec, req)
-			
+
 			assert.Equal(t, tt.expectedStatus, rec.Code)
-			
+
 			var resp map[string]any
 			err := json.Unmarshal(rec.Body.Bytes(), &resp)
 			require.NoError(t, err)
@@ -1082,13 +1082,13 @@ func TestHandler_SetReadyErrors(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	manager := internal.NewManager(logger)
 	defer manager.Stop()
-	
+
 	handler := internal.NewHandler(manager, logger)
 	router := handler.Routes()
-	
+
 	// 創建一個房間
 	room, _ := manager.CreateRoom("測試房間", 2, "", internal.ModeCoop, "normal")
-	
+
 	tests := []struct {
 		name           string
 		roomID         string
@@ -1097,11 +1097,11 @@ func TestHandler_SetReadyErrors(t *testing.T) {
 		expectedError  string
 	}{
 		{
-			name:   "無效的請求體",
-			roomID: room.ID,
-			requestBody: "invalid json",
+			name:           "無效的請求體",
+			roomID:         room.ID,
+			requestBody:    "invalid json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "無效的請求格式",
+			expectedError:  "無效的請求格式",
 		},
 		{
 			name:   "缺少玩家ID",
@@ -1110,7 +1110,7 @@ func TestHandler_SetReadyErrors(t *testing.T) {
 				"is_ready": true,
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "玩家ID為必填",
+			expectedError:  "玩家ID為必填",
 		},
 		{
 			name:   "房間不存在",
@@ -1120,21 +1120,21 @@ func TestHandler_SetReadyErrors(t *testing.T) {
 				"is_ready":  true,
 			},
 			expectedStatus: http.StatusNotFound,
-			expectedError: "房間不存在",
+			expectedError:  "房間不存在",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.requestBody)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms/"+tt.roomID+"/ready", bytes.NewReader(body))
 			req.SetPathValue("room_id", tt.roomID)
 			rec := httptest.NewRecorder()
-			
+
 			router.ServeHTTP(rec, req)
-			
+
 			assert.Equal(t, tt.expectedStatus, rec.Code)
-			
+
 			var resp map[string]any
 			err := json.Unmarshal(rec.Body.Bytes(), &resp)
 			require.NoError(t, err)
@@ -1148,15 +1148,15 @@ func TestHandler_SelectSongErrors(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	manager := internal.NewManager(logger)
 	defer manager.Stop()
-	
+
 	handler := internal.NewHandler(manager, logger)
 	router := handler.Routes()
-	
+
 	// 創建一個房間並加入玩家（成為房主）
 	room, _ := manager.CreateRoom("測試房間", 2, "", internal.ModeCoop, "normal")
 	_ = manager.JoinRoom(room.ID, "player_001", "玩家一", "") // 第一個玩家成為房主
 	_ = manager.JoinRoom(room.ID, "player_002", "玩家二", "") // 滿員，狀態變成 StatusPreparing
-	
+
 	tests := []struct {
 		name           string
 		roomID         string
@@ -1165,21 +1165,21 @@ func TestHandler_SelectSongErrors(t *testing.T) {
 		expectedError  string
 	}{
 		{
-			name:   "無效的請求體",
-			roomID: room.ID,
-			requestBody: "invalid json",
+			name:           "無效的請求體",
+			roomID:         room.ID,
+			requestBody:    "invalid json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "無效的請求格式",
+			expectedError:  "無效的請求格式",
 		},
 		{
 			name:   "非房主選歌",
 			roomID: room.ID,
 			requestBody: map[string]any{
 				"player_id": "player_002",
-				"song_id": "song_001",
+				"song_id":   "song_001",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "只有房主可以選歌",
+			expectedError:  "只有房主可以選歌",
 		},
 		{
 			name:   "房間不存在",
@@ -1189,21 +1189,21 @@ func TestHandler_SelectSongErrors(t *testing.T) {
 				"song_id":   "song_001",
 			},
 			expectedStatus: http.StatusNotFound,
-			expectedError: "房間不存在",
+			expectedError:  "房間不存在",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.requestBody)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms/"+tt.roomID+"/select_song", bytes.NewReader(body))
 			req.SetPathValue("room_id", tt.roomID)
 			rec := httptest.NewRecorder()
-			
+
 			router.ServeHTTP(rec, req)
-			
+
 			assert.Equal(t, tt.expectedStatus, rec.Code)
-			
+
 			var resp map[string]any
 			err := json.Unmarshal(rec.Body.Bytes(), &resp)
 			require.NoError(t, err)
@@ -1217,14 +1217,14 @@ func TestHandler_StartGameErrors(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	manager := internal.NewManager(logger)
 	defer manager.Stop()
-	
+
 	handler := internal.NewHandler(manager, logger)
 	router := handler.Routes()
-	
+
 	// 創建一個房間並加入玩家（成為房主）
 	room, _ := manager.CreateRoom("測試房間", 2, "", internal.ModeCoop, "normal")
 	_ = manager.JoinRoom(room.ID, "player_001", "玩家一", "") // 第一個玩家成為房主
-	
+
 	tests := []struct {
 		name           string
 		roomID         string
@@ -1233,18 +1233,18 @@ func TestHandler_StartGameErrors(t *testing.T) {
 		expectedError  string
 	}{
 		{
-			name:   "無效的請求體",
-			roomID: room.ID,
-			requestBody: "invalid json",
+			name:           "無效的請求體",
+			roomID:         room.ID,
+			requestBody:    "invalid json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "無效的請求格式",
+			expectedError:  "無效的請求格式",
 		},
 		{
-			name:   "缺少玩家ID",
-			roomID: room.ID,
-			requestBody: map[string]any{},
+			name:           "缺少玩家ID",
+			roomID:         room.ID,
+			requestBody:    map[string]any{},
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "玩家ID為必填",
+			expectedError:  "玩家ID為必填",
 		},
 		{
 			name:   "房間不存在",
@@ -1253,7 +1253,7 @@ func TestHandler_StartGameErrors(t *testing.T) {
 				"player_id": "player_001",
 			},
 			expectedStatus: http.StatusNotFound,
-			expectedError: "房間不存在",
+			expectedError:  "房間不存在",
 		},
 		{
 			name:   "非房主開始遊戲",
@@ -1262,21 +1262,21 @@ func TestHandler_StartGameErrors(t *testing.T) {
 				"player_id": "player_002",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError: "只有房主可以開始遊戲",
+			expectedError:  "只有房主可以開始遊戲",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.requestBody)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms/"+tt.roomID+"/start", bytes.NewReader(body))
 			req.SetPathValue("room_id", tt.roomID)
 			rec := httptest.NewRecorder()
-			
+
 			router.ServeHTTP(rec, req)
-			
+
 			assert.Equal(t, tt.expectedStatus, rec.Code)
-			
+
 			var resp map[string]any
 			err := json.Unmarshal(rec.Body.Bytes(), &resp)
 			require.NoError(t, err)

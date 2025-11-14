@@ -152,7 +152,7 @@ func TestWebSocketHub_Messages(t *testing.T) {
 // TestWebSocketHub_RoomEvents 測試房間事件廣播
 func TestWebSocketHub_RoomEvents(t *testing.T) {
 	t.Skip("跳過此測試 - 事件廣播功能已實現但測試環境中時序問題導致不穩定")
-	
+
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	manager := internal.NewManager(logger)
 	defer manager.Stop()
@@ -399,7 +399,7 @@ func TestWebSocketHub_DisconnectPlayer(t *testing.T) {
 
 	// 等待連接關閉
 	time.Sleep(200 * time.Millisecond)
-	
+
 	// 嘗試讀取應該返回錯誤（連接已關閉）
 	ws.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	_, _, err = ws.ReadMessage()
@@ -439,7 +439,7 @@ func TestWebSocketHub_Stop(t *testing.T) {
 
 	// 等待連接關閉
 	time.Sleep(200 * time.Millisecond)
-	
+
 	// 嘗試讀取應該返回錯誤（連接已關閉）
 	ws.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	_, _, err = ws.ReadMessage()
@@ -649,4 +649,3 @@ func TestWebSocketHub_Heartbeat(t *testing.T) {
 	err = ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
 	assert.NoError(t, err)
 }
-
