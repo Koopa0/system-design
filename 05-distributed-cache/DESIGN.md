@@ -1,6 +1,6 @@
 # Distributed Cache 系統設計文檔
 
-## 📋 問題定義
+## 問題定義
 
 ### 業務需求
 構建分布式快取系統，提升應用性能：
@@ -36,14 +36,14 @@
 
 ---
 
-## 🤔 設計決策樹
+## 設計決策樹
 
 ### 決策 1：選擇哪種淘汰算法？
 
 ```
 問題：快取容量有限，當滿時應該淘汰哪些數據？
 
-❌ 方案 A：FIFO（First In First Out）
+方案 A：FIFO（First In First Out）
    機制：淘汰最早加入的數據
 
    問題：
@@ -53,14 +53,14 @@
    範例：
    - 加入順序：A → B → C → D
    - 容量滿，加入 E
-   - 淘汰 A（即使 A 是熱門數據）❌
+   - 淘汰 A（即使 A 是熱門數據）
 
-❌ 方案 B：Random（隨機淘汰）
+方案 B：Random（隨機淘汰）
    問題：
    - 無法保護熱門數據
    - 命中率不穩定
 
-✅ 方案 C：LRU（Least Recently Used）⭐
+選擇方案 C：LRU（Least Recently Used）
    機制：淘汰最久未使用的數據
 
    數據結構：
@@ -86,9 +86,9 @@
    範例（快取污染）：
    - 熱門數據：A(1000次), B(1000次), C(1000次)
    - 突然訪問：D, E, F, G（各 1 次）
-   - 如果容量只有 4，熱門數據 A,B,C 被淘汰❌
+   - 如果容量只有 4，熱門數據 A,B,C 被淘汰
 
-✅ 方案 D：LFU（Least Frequently Used）⭐
+選擇方案 D：LFU（Least Frequently Used）
    機制：淘汰訪問頻率最低的數據
 
    數據結構：
@@ -116,8 +116,8 @@
    範例（防止污染）：
    - 熱門數據：A(freq=1000), B(freq=1000), C(freq=1000)
    - 突然訪問：D(freq=1), E(freq=1), F(freq=1), G(freq=1)
-   - 淘汰：D,E,F,G（頻率低）✅
-   - 保護：A,B,C（頻率高）✅
+   - 淘汰：D,E,F,G（頻率低）
+   - 保護：A,B,C（頻率高）
 
 方案 E：LRU-K（考慮 K 次訪問）
    機制：考慮最近 K 次訪問的時間
@@ -212,7 +212,7 @@ func (lfu *LFU) increaseFreq(node *lfuNode) {
 ```
 問題：單機內存有限（假設 16 GB），如何擴展到 100 GB+？
 
-❌ 方案 A：傳統哈希取模（hash(key) % N）
+方案 A：傳統哈希取模（hash(key) % N）
    機制：key hash 後對節點數取模
 
    範例：3 個節點
@@ -223,7 +223,7 @@ func (lfu *LFU) increaseFreq(node *lfuNode) {
    問題：節點增減時大量重新分配
    - 增加節點：3 → 4
      - key1: hash % 3 = 1 → hash % 4 = ? （可能改變）
-     - 最壞情況：75% 數據需要重新分配❌
+     - 最壞情況：75% 數據需要重新分配
 
    計算：
    - 3 節點 → 4 節點
@@ -231,7 +231,7 @@ func (lfu *LFU) increaseFreq(node *lfuNode) {
    - 需要遷移：~75%
    - 1000 萬 key × 1KB × 75% = 7.5 GB 數據遷移
 
-✅ 方案 B：一致性哈希（Consistent Hashing）⭐
+選擇方案 B：一致性哈希（Consistent Hashing）
    機制：
    - 哈希環：0 到 2^32-1
    - 節點映射到環上：hash(node) → 位置
@@ -257,7 +257,7 @@ func (lfu *LFU) increaseFreq(node *lfuNode) {
    計算（3 → 4 節點）：
    - 需要遷移：1/4 = 25%
    - 1000 萬 key × 1KB × 25% = 2.5 GB
-   - 相比傳統哈希減少 67% 遷移量✅
+   - 相比傳統哈希減少 67% 遷移量
 
    權衡：
    - 查找複雜度：O(log N)（二分搜索）
@@ -323,7 +323,7 @@ func (ch *ConsistentHash) Get(key string) string {
 ```
 問題：如何協調快取與資料庫的讀寫？
 
-✅ 方案 A：Cache-Aside（旁路快取）⭐
+選擇方案 A：Cache-Aside（旁路快取）
    機制：應用程式控制快取邏輯
 
    讀取流程：
@@ -348,14 +348,14 @@ func (ch *ConsistentHash) Get(key string) string {
    - T1：線程 A 刪除快取
    - T2：線程 B 查詢快取（未命中）→ 查 DB（舊值）
    - T3：線程 A 更新 DB
-   - T4：線程 B 寫入快取（舊值）❌
+   - T4：線程 B 寫入快取（舊值）
 
    解決：延遲雙刪
    1. 刪除快取
    2. 更新 DB
    3. 延遲 N 秒後再刪除快取
 
-✅ 方案 B：Write-Through（寫穿）
+選擇方案 B：Write-Through（寫穿）
    機制：同步更新快取和資料庫
 
    寫入流程：
@@ -373,7 +373,7 @@ func (ch *ConsistentHash) Get(key string) string {
 
    適用：讀多寫少，一致性要求高
 
-✅ 方案 C：Write-Back（寫回）
+選擇方案 C：Write-Back（寫回）
    機制：只寫快取，異步批量寫 DB
 
    寫入流程：
@@ -495,10 +495,10 @@ func (wb *WriteBack) flush() {
 - 快取無 → 查 DB 無 → 返回 null
 - 惡意攻擊：大量查詢不存在的 ID
 
-❌ 方案 A：快取空值
+方案 A：快取空值
    問題：大量空值占用內存
 
-✅ 方案 B：Bloom Filter
+選擇方案 B：Bloom Filter
    機制：
    - 啟動時將所有 key 加入 Bloom Filter
    - 查詢時先檢查 Bloom Filter
@@ -522,13 +522,13 @@ func (wb *WriteBack) flush() {
 範例：
 - 批量導入 1 萬筆數據，TTL = 1 小時
 - 1 小時後同時過期
-- 1 萬個請求同時查 DB ❌
+- 1 萬個請求同時查 DB 
 
-✅ 方案 A：隨機 TTL
+選擇方案 A：隨機 TTL
    TTL = base + random(0, delta)
    例如：1 小時 ± 10 分鐘
 
-✅ 方案 B：永不過期 + 後台更新
+選擇方案 B：永不過期 + 後台更新
    - 設置 TTL = 0（永不過期）
    - 後台定期刷新數據
 
@@ -541,19 +541,19 @@ func (wb *WriteBack) flush() {
 範例：
 - 熱門商品快取過期
 - 100 個並發請求同時到達
-- 100 個請求都查 DB（重複查詢）❌
+- 100 個請求都查 DB（重複查詢）
 
-❌ 方案 A：分布式鎖
+方案 A：分布式鎖
    機制：第一個請求加鎖查 DB，其他等待
    問題：增加延遲
 
-✅ 方案 B：永不過期（熱門數據）
+選擇方案 B：永不過期（熱門數據）
    機制：
    - 識別熱門數據（訪問次數閾值）
    - 設置 TTL = 0
    - 後台定期更新
 
-✅ 方案 C：提前更新
+選擇方案 C：提前更新
    機制：
    - 在過期前 N 秒觸發更新
    - 確保不會真正過期
@@ -565,7 +565,7 @@ func (wb *WriteBack) flush() {
 
 ---
 
-## 📈 擴展性分析
+## 擴展性分析
 
 ### 當前架構容量
 
@@ -656,9 +656,9 @@ func (wb *WriteBack) flush() {
 
 ---
 
-## 🔧 實現範圍標註
+## 實現範圍標註
 
-### ✅ 已實現（核心教學內容）
+### 已實現（核心教學內容）
 
 | 功能 | 檔案 | 教學重點 |
 |------|------|----------|
@@ -669,7 +669,7 @@ func (wb *WriteBack) flush() {
 | **Write-Back** | `back.go` | 異步批量寫入 |
 | **並發安全** | 各算法 `sync.RWMutex` | 讀寫鎖優化 |
 
-### ⚠️ 教學簡化（未實現）
+### 教學簡化（未實現）
 
 | 功能 | 原因 | 生產環境建議 |
 |------|------|-------------|
@@ -679,7 +679,7 @@ func (wb *WriteBack) flush() {
 | **序列化** | 假設內存對象 | Protobuf、JSON |
 | **持久化** | 純內存快取 | RDB + AOF（Redis 風格）|
 
-### 🚀 生產環境額外需要
+### 生產環境額外需要
 
 ```
 1. 高可用性
@@ -714,7 +714,7 @@ func (wb *WriteBack) flush() {
 
 ---
 
-## 💡 關鍵設計原則總結
+## 關鍵設計原則總結
 
 ### 1. LRU vs LFU（淘汰策略）
 ```
@@ -784,7 +784,7 @@ Write-Back（高性能）：
 
 ---
 
-## 📚 延伸閱讀
+## 延伸閱讀
 
 ### 相關系統設計問題
 - 如何設計一個 **Redis**？（完整快取系統）
@@ -805,7 +805,7 @@ Write-Back（高性能）：
 
 ---
 
-## 🎯 總結
+## 總結
 
 Distributed Cache 展示了**高性能快取系統**的經典設計模式：
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/koopa0/system-design/03-url-shortener/internal/shortener"
 )

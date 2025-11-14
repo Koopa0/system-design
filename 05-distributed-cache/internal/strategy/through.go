@@ -3,7 +3,7 @@ package strategy
 import (
 	"context"
 
-	"github.com/Koopa0/system-design/05-distributed-cache/internal/cache"
+	"github.com/koopa0/system-design/05-distributed-cache/internal/cache"
 )
 
 // WriteThrough 實作 Write-Through 策略（寫穿透）。

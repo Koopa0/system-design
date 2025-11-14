@@ -1,4 +1,4 @@
-module github.com/koopa0/system-design/exercise-2
+module github.com/koopa0/system-design/02-room-management
 
 go 1.24.0
 

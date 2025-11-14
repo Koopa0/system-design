@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Koopa0/system-design/04-rate-limiter/internal/limiter"
+	"github.com/koopa0/system-design/04-rate-limiter/internal/limiter"
 	"github.com/google/uuid"
 )
 

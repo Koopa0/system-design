@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/koopa0/system-design/exercise-2/internal"
+	"github.com/koopa0/system-design/02-room-management/internal"
 )
 
 func main() {

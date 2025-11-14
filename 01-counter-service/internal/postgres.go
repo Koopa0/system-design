@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/koopa0/system-design/exercise-1/internal/sqlc"
+	"github.com/koopa0/system-design/01-counter-service/internal/sqlc"
 )
 
 // incrementPostgresSQLc 使用 sqlc 從 PostgreSQL 增加計數器（降級模式）

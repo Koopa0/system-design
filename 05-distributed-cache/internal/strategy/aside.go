@@ -16,7 +16,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Koopa0/system-design/05-distributed-cache/internal/cache"
+	"github.com/koopa0/system-design/05-distributed-cache/internal/cache"
 )
 
 // DataStore 是資料儲存介面（如資料庫）。

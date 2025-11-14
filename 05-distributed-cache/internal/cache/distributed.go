@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Koopa0/system-design/05-distributed-cache/pkg/consistent"
+	"github.com/koopa0/system-design/05-distributed-cache/pkg/consistent"
 )
 
 // DistributedCache 是分散式快取實作。

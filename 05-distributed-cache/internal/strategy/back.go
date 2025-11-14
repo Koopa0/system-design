@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Koopa0/system-design/05-distributed-cache/internal/cache"
+	"github.com/koopa0/system-design/05-distributed-cache/internal/cache"
 )
 
 // WriteBack 實作 Write-Back 策略（寫回）。

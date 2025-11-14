@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 

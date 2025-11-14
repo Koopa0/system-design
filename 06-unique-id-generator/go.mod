@@ -1,3 +1,3 @@
-module github.com/koopa0/06-unique-id-generator
+module github.com/koopa0/system-design/06-unique-id-generator
 
 go 1.24
