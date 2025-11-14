@@ -4,19 +4,25 @@
 
 請按照以下步驟手動添加 workflow：
 
+## Workflow 範例文件
+
+完整的 workflow 配置位於: **`docs/ci.yml.example`**
+
 ## 方式 1: 通過 GitHub UI（推薦）
 
 1. 進入 GitHub 倉庫
 2. 點擊 "Actions" 標籤
 3. 點擊 "New workflow"
 4. 選擇 "set up a workflow yourself"
-5. 複製 `workflows/ci.yml` 的內容
-6. 保存並提交
+5. 複製 `docs/ci.yml.example` 的內容
+6. 保存並提交到 `.github/workflows/ci.yml`
 
 ## 方式 2: 本地推送（需要權限）
 
 ```bash
 # 如果您有 workflow 權限，可以直接推送
+mkdir -p .github/workflows
+cp docs/ci.yml.example .github/workflows/ci.yml
 git add .github/workflows/ci.yml
 git commit -m "ci: add GitHub Actions workflow"
 git push
@@ -25,9 +31,13 @@ git push
 ## Workflow 文件位置
 
 ```
+docs/
+└── ci.yml.example    # Workflow 範例（完整配置）
+
+# 最終位置（需手動創建）：
 .github/
 └── workflows/
-    └── ci.yml    # 主 CI 配置文件（已創建）
+    └── ci.yml
 ```
 
 ## Workflow 功能
