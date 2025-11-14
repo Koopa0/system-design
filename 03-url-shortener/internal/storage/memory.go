@@ -63,6 +63,13 @@ func (m *Memory) Save(ctx context.Context, url *shortener.URL) error {
 }
 
 // Load 加載短網址
+//
+// 系統設計考量：
+//   - 並發安全：使用 RLock（允許多個讀者並發）
+//   - 數據隔離：返回副本而非指針（防止外部修改）
+//     → 為什麼返回副本？
+//     → 防止調用者直接修改 Clicks 等字段（繞過 IncrementClicks）
+//     → 避免數據競爭（data race）
 func (m *Memory) Load(ctx context.Context, shortCode string) (*shortener.URL, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -76,7 +83,9 @@ func (m *Memory) Load(ctx context.Context, shortCode string) (*shortener.URL, er
 		return nil, shortener.ErrExpired
 	}
 
-	return url, nil
+	// 返回副本，防止外部修改
+	urlCopy := *url
+	return &urlCopy, nil
 }
 
 // IncrementClicks 增加點擊計數

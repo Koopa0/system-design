@@ -278,10 +278,29 @@ func (h *Handler) errorJSON(w http.ResponseWriter, message string, status int) {
 // 系統設計考量：
 //   - 生產環境應使用配置的域名（如 short.url）
 //   - 這裡簡化處理：使用請求的 Host
+// buildShortURL 構建完整的短網址
+//
+// 系統設計考量：
+//   - Scheme 檢測：支持反向代理場景
+//     → 優先檢查 X-Forwarded-Proto（代理轉發的原始協議）
+//     → 回退到 r.TLS（直連場景）
+//   - 部署場景：
+//     → 開發環境：直連（http://localhost:8080）
+//     → 生產環境：代理（nginx → https → 服務）
 func buildShortURL(r *http.Request, shortCode string) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
+	// 檢查代理轉發的原始協議（常見於生產環境）
+	//
+	// 為什麼優先檢查 X-Forwarded-Proto？
+	//   - 反向代理（nginx/Traefik）會設置此 header
+	//   - 表示客戶端到代理的原始協議（https）
+	//   - r.TLS 為 nil（代理到服務是 http）
+	scheme := r.Header.Get("X-Forwarded-Proto")
+	if scheme == "" {
+		// 直連場景：根據 TLS 判斷
+		scheme = "http"
+		if r.TLS != nil {
+			scheme = "https"
+		}
 	}
 	return scheme + "://" + r.Host + "/" + shortCode
 }

@@ -162,12 +162,30 @@ type Config struct {
 //   - 默認值：便於本地開發
 //   - 環境變量：生產環境覆蓋默認值
 //   - 驗證：確保配置合法（如端口範圍）
+// loadConfig 加載配置
+//
+// 系統設計考量：
+//   - MachineID 範圍：0-1023（Snowflake 要求）
+//   - 無效配置：立即失敗（Fail-Fast）
+//   - 環境變量：12-Factor App 原則
 func loadConfig() *Config {
-	return &Config{
+	cfg := &Config{
 		ServerAddr:  getEnv("SERVER_ADDR", ":8080"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/urlshortener?sslmode=disable"),
 		MachineID:   getEnvInt64("MACHINE_ID", 1),
 	}
+
+	// 驗證 MachineID（Snowflake 要求：0-1023）
+	//
+	// 為什麼是 0-1023？
+	//   - Snowflake ID 分配 10 位給機器 ID（2^10 = 1024）
+	//   - 超出範圍會導致 ID 衝突或生成失敗
+	if cfg.MachineID < 0 || cfg.MachineID > 1023 {
+		slog.Error("invalid MachineID", "value", cfg.MachineID, "valid_range", "0-1023")
+		os.Exit(1)
+	}
+
+	return cfg
 }
 
 // getEnv 獲取環境變量（帶默認值）

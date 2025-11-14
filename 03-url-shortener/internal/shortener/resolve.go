@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"context"
+	"time"
 )
 
 // Resolve 將短碼解析為長 URL
@@ -70,18 +71,21 @@ func Resolve(ctx context.Context, store Store, shortCode string) (string, error)
 	//
 	// 這裡簡化處理：啟動 goroutine 異步更新
 	go func() {
-		// 使用新的 context（避免父 context 取消影響）
+		// 使用獨立的 context 與超時設置
 		//
-		// 為什麼不用 ctx？
-		//   - ctx 會在請求結束時取消
+		// 為什麼不用父 context (ctx)？
+		//   - 父 ctx 會在 HTTP 請求結束時取消
 		//   - 異步操作需要獨立的生命週期
 		//
-		// 生產環境應該：
-		//   - context.WithTimeout(context.Background(), 5*time.Second)
-		//   - 記錄錯誤日誌
-		//   - 監控失敗率
-		_ = store.IncrementClicks(context.Background(), shortCode)
+		// 為什麼設置超時（5 秒）？
+		//   - 防止 goroutine 洩漏（如果數據庫卡住）
+		//   - 點擊統計不重要，快速失敗即可
+		clickCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_ = store.IncrementClicks(clickCtx, shortCode)
 		// 忽略錯誤（統計失敗不影響重定向）
+		// 生產環境應該：記錄錯誤日誌、監控失敗率
 	}()
 
 	// 4. 返回長 URL

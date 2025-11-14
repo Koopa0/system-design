@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"context"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -55,8 +56,12 @@ func Shorten(ctx context.Context, store Store, idgen *snowflake.Generator, longU
 		// 使用自定義短碼
 		//
 		// 驗證：
+		//   - 長度限制：4-12 字符（平衡可讀性與容量）
 		//   - 僅允許 Base62 字符（0-9, A-Z, a-z）
 		//   - 防止注入攻擊（如 "../admin"）
+		if len(customCode) < 4 || len(customCode) > 12 {
+			return nil, ErrInvalidURL
+		}
 		if !base62.IsValid(customCode) {
 			return nil, ErrInvalidURL
 		}
@@ -128,10 +133,12 @@ func Shorten(ctx context.Context, store Store, idgen *snowflake.Generator, longU
 //   - 必須可解析（url.Parse）
 //   - 必須有 scheme（http:// 或 https://）
 //   - 必須有 host（域名或 IP）
+//   - 不允許私有 IP 範圍（防止 SSRF）
 //
 // 安全考量：
 //   - 拒絕 javascript:、data: 等危險 scheme
-//   - 防止 SSRF 攻擊（這裡簡化處理，生產環境需額外檢查）
+//   - 防止 SSRF 攻擊：拒絕 localhost、127.0.0.1、私有 IP
+//   - 設計問題：是否允許內網 URL？取決於業務需求
 func isValidURL(rawURL string) bool {
 	// 解析 URL
 	u, err := url.Parse(rawURL)
@@ -150,5 +157,65 @@ func isValidURL(rawURL string) bool {
 		return false
 	}
 
+	// SSRF 防護：檢查是否為私有 IP 或 localhost
+	//
+	// 系統設計考量：
+	//   - 為什麼拒絕私有 IP？
+	//     → 防止攻擊者探測內網服務（如 http://192.168.1.1/admin）
+	//     → 防止訪問雲服務元數據端點（如 http://169.254.169.254）
+	//   - Trade-off：如果業務需要內網短鏈，需要配置白名單
+	if isPrivateOrLocalhost(u.Hostname()) {
+		return false
+	}
+
 	return true
+}
+
+// isPrivateOrLocalhost 檢查主機名是否為私有 IP 或 localhost
+//
+// 防護範圍：
+//   - localhost、127.0.0.0/8（本地回環）
+//   - 10.0.0.0/8（私有網段 A）
+//   - 172.16.0.0/12（私有網段 B）
+//   - 192.168.0.0/16（私有網段 C）
+//   - 169.254.0.0/16（鏈路本地地址，AWS 元數據）
+//
+// 系統設計問題：
+//   - 為什麼要防止 169.254.169.254？
+//     → AWS/GCP 的元數據服務地址
+//     → 攻擊者可以通過 SSRF 獲取雲服務憑證
+func isPrivateOrLocalhost(host string) bool {
+	// 檢查 localhost
+	if host == "localhost" || strings.HasPrefix(host, "127.") {
+		return true
+	}
+
+	// 嘗試解析為 IP
+	ip := net.ParseIP(host)
+	if ip == nil {
+		// 如果不是 IP，嘗試解析域名（簡化處理：允許域名通過）
+		// 生產環境應該：
+		//   1. 解析域名為 IP
+		//   2. 檢查所有 IP 是否為私有
+		//   3. 設置解析超時（避免 DNS rebinding）
+		return false
+	}
+
+	// 檢查私有 IP 範圍
+	privateRanges := []string{
+		"10.0.0.0/8",     // 私有網段 A
+		"172.16.0.0/12",  // 私有網段 B
+		"192.168.0.0/16", // 私有網段 C
+		"169.254.0.0/16", // 鏈路本地地址（AWS 元數據）
+		"127.0.0.0/8",    // 本地回環
+	}
+
+	for _, cidr := range privateRanges {
+		_, ipNet, _ := net.ParseCIDR(cidr)
+		if ipNet.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
 }

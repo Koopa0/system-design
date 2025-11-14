@@ -128,7 +128,19 @@ func (r *RedisCache) Load(ctx context.Context, shortCode string) (*shortener.URL
 	// 1. 查詢 Redis
 	data, err := r.client.Get(ctx, key)
 	if err == nil {
-		// Cache Hit：解析 JSON 並返回
+		// Cache Hit：檢查是否為空結果（快取穿透防護）
+		//
+		// 系統設計考量：
+		//   - 為什麼快取 "null"？
+		//     → 防止不存在的短碼重複查詢 DB（快取穿透）
+		//     → 攻擊場景：惡意請求大量不存在的短碼
+		//   - 為什麼 TTL 較短（1 分鐘）？
+		//     → 如果短碼後來被創建，可以快速生效
+		if data == "null" {
+			return nil, shortener.ErrNotFound
+		}
+
+		// 解析 JSON 並返回
 		var url shortener.URL
 		if err := json.Unmarshal([]byte(data), &url); err == nil {
 			// 檢查過期（即使在快取中也要檢查）

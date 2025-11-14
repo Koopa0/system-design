@@ -185,10 +185,22 @@ func (c *Counter) Increment(ctx context.Context, name string, value int64, userI
 		}
 
 		// 設置 TTL（次日凌晨自動刪除）
+		//
+		// 系統設計考量：
+		//   - 為什麼要設置 TTL？
+		//     → 自動清理過期數據（節省內存）
+		//     → 避免手動清理的複雜性
+		//   - 為什麼是次日凌晨？
+		//     → DAU 統計以自然日為單位
+		//     → 自動對齊業務邏輯
 		if added > 0 {
 			tomorrow := time.Now().In(location).AddDate(0, 0, 1)
 			midnight := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, location)
-			c.redis.ExpireAt(ctx, dauKey, midnight)
+			if err := c.redis.ExpireAt(ctx, dauKey, midnight).Err(); err != nil {
+				// TTL 設置失敗不影響計數邏輯
+				// 最壞情況：該 key 不會自動過期，需要定期清理
+				c.logger.Warn("failed to set DAU TTL", "key", dauKey, "error", err)
+			}
 			value = added
 		} else {
 			// 用戶今天已計數，直接返回當前值
@@ -216,7 +228,15 @@ func (c *Counter) Increment(ctx context.Context, name string, value int64, userI
 		// 成功加入批量隊列
 	default:
 		// 緩衝區滿（背壓），同步寫入
-		go c.syncToPostgresSQLc(ctx, name, newVal)
+		//
+		// 系統設計考量：
+		//   - 為什麼不啟動 goroutine？
+		//     → 防止無限制的 goroutine 創建（資源耗盡）
+		//     → 同步寫入產生自然背壓（保護系統）
+		//   - Trade-off：
+		//     → 延遲增加（P99 可能達到 50-100ms）
+		//     → 換取系統穩定性（避免 OOM）
+		c.syncToPostgresSQLc(ctx, name, newVal)
 	}
 
 	c.redisErrors.Store(0)
@@ -263,7 +283,8 @@ func (c *Counter) Decrement(ctx context.Context, name string, value int64) (int6
 		timestamp: time.Now(),
 	}:
 	default:
-		go c.syncToPostgresSQLc(ctx, name, newVal)
+		// 緩衝區滿（背壓），同步寫入（同 Increment）
+		c.syncToPostgresSQLc(ctx, name, newVal)
 	}
 
 	c.redisErrors.Store(0)
