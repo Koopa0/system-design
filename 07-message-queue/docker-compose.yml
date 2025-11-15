@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # NATS Server with JetStream
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats-server
+    ports:
+      - "4222:4222"   # Client 連接端口
+      - "8222:8222"   # HTTP 監控端口
+      - "6222:6222"   # Cluster 端口（叢集模式）
+    command: >
+      --jetstream
+      --store_dir=/data
+      --http_port=8222
+      --max_payload=8MB
+      --max_mem=2GB
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD", "nats-server", "--healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - mq-network
+
+  # NATS Monitoring (可選)
+  # nats-monitoring:
+  #   image: grafana/grafana:latest
+  #   container_name: nats-grafana
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   networks:
+  #     - mq-network
+
+volumes:
+  nats-data:
+    driver: local
+
+networks:
+  mq-network:
+    driver: bridge
