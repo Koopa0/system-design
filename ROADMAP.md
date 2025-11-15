@@ -121,6 +121,67 @@
 
 ---
 
+## Phase 1.5: 消息與事件 (Messaging & Events)
+
+> Phase 1 到 Phase 2 的過渡，引入異步處理、事件驅動架構
+
+### 07. Message Queue
+- **難度**: 2 星
+- **時間**: 2-3 週
+- **核心概念**: NATS JetStream、At-least-once、Queue Groups
+- **學習重點**:
+  - 消息隊列選型（NATS vs Kafka vs RabbitMQ vs Redis）
+  - At-least-once 語義保證
+  - Queue Groups 負載均衡
+  - 消息持久化與重試機制
+- **應用場景**:
+  - 微服務異步通訊
+  - 任務隊列（郵件、報表）
+  - 削峰填谷（秒殺系統）
+  - 事件驅動架構
+- **ByteByteGo**: Design a Message Queue
+- **DDIA**: Chapter 11 - Stream Processing
+- **技術棧**: NATS JetStream（輕量級、高性能）
+
+### 08. Task Scheduler
+- **難度**: 2 星
+- **時間**: 2-3 週
+- **核心概念**: 時間輪算法、延遲隊列、Cron 表達式
+- **學習重點**:
+  - 時間輪算法（Netty、Kafka 使用）
+  - 延遲任務調度（訂單超時取消）
+  - 定時任務（Cron 解析）
+  - 分布式調度（避免重複執行）
+- **應用場景**:
+  - 訂單超時處理（30 分鐘未支付）
+  - 定時報表生成（每日凌晨）
+  - 會議室預訂釋放（2 小時）
+  - 週期性任務（數據同步）
+- **ByteByteGo**: Design a Task Scheduler
+- **算法**: Timing Wheel（O(1) 插入與觸發）
+- **技術棧**: 時間輪 + NATS JetStream（持久化）
+
+### 09. Event-Driven Architecture
+- **難度**: 3 星
+- **時間**: 3-4 週
+- **核心概念**: Event Sourcing、CQRS、Saga 模式
+- **學習重點**:
+  - Event Sourcing（事件溯源）
+  - CQRS（讀寫分離）
+  - Saga 模式（分布式事務協調）
+  - 事件重播與狀態重建
+- **應用場景**:
+  - 微服務事件驅動
+  - 訂單處理流程（下單 → 扣庫存 → 扣款）
+  - 完整審計歷史
+  - 複雜業務流程編排
+- **ByteByteGo**: Design an Event-Driven System
+- **DDIA**: Chapter 11 - Stream Processing
+- **模式**: Event Sourcing、CQRS、Saga Choreography
+- **技術棧**: NATS JetStream（Event Store）
+
+---
+
 ## Phase 2: 數據密集型 (Data-Intensive)
 
 > 處理海量數據、搜尋、分析
