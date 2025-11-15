@@ -1,6 +1,6 @@
-module 07-message-queue
+module github.com/koopa0/system-design/07-message-queue
 
-go 1.24
+go 1.25.1
 
 require github.com/nats-io/nats.go v1.31.0
 

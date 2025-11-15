@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	"07-message-queue/internal"
+	"github.com/koopa0/system-design/07-message-queue/internal"
 )
 
 func main() {

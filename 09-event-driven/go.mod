@@ -1,6 +1,6 @@
-module 09-event-driven
+module github.com/koopa0/system-design/09-event-driven
 
-go 1.24
+go 1.25.1
 
 require github.com/nats-io/nats.go v1.31.0
 
