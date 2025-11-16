@@ -4,7 +4,7 @@
 
 ## 總覽
 
-本路線圖涵蓋 **60+ 個系統設計案例**，按難度和主題分為 8 個階段。建議按順序學習，每個階段都建立在前一階段的基礎上。
+本路線圖涵蓋 **40 個系統設計案例**，按難度和主題分為 8 個階段。建議按順序學習，每個階段都建立在前一階段的基礎上。
 
 ### 學習時間估算
 
@@ -271,7 +271,7 @@
 
 > 高並發、實時性、社交關係
 
-### 20. News Feed (Twitter/Facebook)
+### 15. News Feed (Twitter/Facebook)
 - **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: Feed 生成、推拉模型、Fanout
@@ -287,7 +287,7 @@
 - **ByteByteGo**: Design a News Feed System
 - **DDIA**: Chapter 11 - Stream Processing
 
-### 21. Chat System (WhatsApp/WeChat)
+### 16. Chat System (WhatsApp/WeChat)
 - **難度**: 3 星
 - **時間**: 4-5 週
 - **核心概念**: 1對1、群聊、離線訊息、已讀回執
@@ -303,7 +303,7 @@
 - **ByteByteGo**: Design a Chat System
 - **擴展**: 端到端加密（Signal Protocol）
 
-### 22. Notification Service
+### 17. Notification Service
 - **難度**: 2 星
 - **時間**: 2-3 週
 - **核心概念**: 多渠道推送、訂閱、去重、優先級
@@ -318,7 +318,7 @@
   - 運營通知系統
 - **ByteByteGo**: Design a Notification System
 
-### 23. Instagram
+### 18. Instagram
 - **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 圖片上傳、CDN、圖片處理、社交圖譜
@@ -331,9 +331,9 @@
   - Instagram
   - Pinterest
   - 圖片社交平台
-- **相關**: Feed 系統（Phase 20）
+- **相關**: Feed 系統（Chapter 15）
 
-### 24. Live Comment System
+### 19. Live Comment System
 - **難度**: 3 星
 - **時間**: 2-3 週
 - **核心概念**: 實時評論、彈幕、高並發寫入
@@ -354,7 +354,7 @@
 
 > 大文件、串流、轉碼
 
-### 30. YouTube
+### 20. YouTube
 - **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 影片上傳、轉碼、CDN、推薦算法
@@ -370,7 +370,7 @@
 - **ByteByteGo**: Design YouTube
 - **DDIA**: Chapter 10 - Batch Processing
 
-### 31. Netflix
+### 21. Netflix
 - **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 串流、自適應碼率、預加載
@@ -385,7 +385,7 @@
   - 串流平台
 - **ByteByteGo**: Design Netflix
 
-### 32. Spotify
+### 22. Spotify
 - **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: 音樂串流、播放列表、推薦、社交
@@ -400,7 +400,7 @@
   - 音樂平台
 - **ByteByteGo**: Design Spotify
 
-### 33. Google Drive
+### 23. Google Drive
 - **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 文件存儲、同步、版本控制、衝突解決
@@ -422,7 +422,7 @@
 
 > 地理空間、路線規劃、實時追蹤
 
-### 40. Uber/Lyft
+### 24. Uber/Lyft
 - **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 司機匹配、路徑規劃、實時追蹤、動態定價
@@ -437,7 +437,7 @@
   - 叫車服務
 - **ByteByteGo**: Design Uber
 
-### 41. Google Maps
+### 25. Google Maps
 - **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: 地圖渲染、路線規劃、導航、路況預測
@@ -452,7 +452,7 @@
   - 導航系統
 - **ByteByteGo**: Design Google Maps
 
-### 42. Yelp (附近的餐廳)
+### 26. Yelp (附近的餐廳)
 - **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: 地理空間索引、QuadTree、範圍查詢
@@ -467,7 +467,7 @@
   - 附近功能
 - **ByteByteGo**: Design Yelp
 
-### 43. Food Delivery (UberEats)
+### 27. Food Delivery (UberEats)
 - **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 訂單匹配、調度優化、多點取送
@@ -487,7 +487,7 @@
 
 > 高並發交易、庫存、支付
 
-### 50. Flash Sale (秒殺系統)
+### 28. Flash Sale (秒殺系統)
 - **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 庫存扣減、超賣問題、削峰填谷
@@ -503,7 +503,7 @@
 - **ByteByteGo**: Design a Flash Sale System
 - **DDIA**: Chapter 7 - Transactions
 
-### 51. Payment System
+### 29. Payment System
 - **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 雙寫、冪等性、對帳、分布式事務
@@ -519,7 +519,7 @@
 - **ByteByteGo**: Design a Payment System
 - **DDIA**: Chapter 7, 9 - Transactions
 
-### 52. Stock Exchange
+### 30. Stock Exchange
 - **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: 訂單匹配、撮合引擎、低延遲
@@ -534,7 +534,7 @@
   - 高頻交易
 - **ByteByteGo**: Design a Stock Exchange
 
-### 53. Hotel Reservation
+### 31. Hotel Reservation
 - **難度**: 3 星
 - **時間**: 3-4 週
 - **核心概念**: 分布式鎖、庫存管理、超賣問題
@@ -554,7 +554,7 @@
 
 > 新興的 AI 系統設計
 
-### 60. ChatGPT-like System
+### 32. ChatGPT-like System
 - **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: LLM API、流式輸出、上下文管理、Token 計費
@@ -570,7 +570,7 @@
 - **ByteByteGo**: Design ChatGPT
 - **相關**: Transformer 架構
 
-### 61. AI Agent Platform
+### 33. AI Agent Platform
 - **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: Agent 編排、Tool Calling、狀態管理、多 Agent 協作
@@ -586,7 +586,7 @@
 - **ByteByteGo**: Design an AI Agent Platform（新）
 - **相關**: LangChain、LlamaIndex
 
-### 62. RAG System (檢索增強生成)
+### 34. RAG System (檢索增強生成)
 - **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 向量數據庫、Embedding、語義搜尋、上下文注入
@@ -601,7 +601,7 @@
   - 客服機器人
 - **技術**: Pinecone、LlamaIndex、FAISS
 
-### 63. Model Training Platform
+### 35. Model Training Platform
 - **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: 分布式訓練、資源調度、GPU 集群、模型版本管理
@@ -616,7 +616,7 @@
   - 訓練平台
 - **相關**: Kubeflow、Ray
 
-### 64. Recommendation Engine
+### 36. Recommendation Engine
 - **難度**: 4 星
 - **時間**: 5-6 週
 - **核心概念**: 協同過濾、內容推薦、特徵工程、實時推薦
@@ -638,7 +638,7 @@
 
 > 分布式系統核心理論
 
-### 70. Distributed Transaction
+### 37. Distributed Transaction
 - **難度**: 5 星
 - **時間**: 6-8 週
 - **核心概念**: 2PC、Saga、TCC、最終一致性
@@ -654,7 +654,7 @@
 - **DDIA**: Chapter 7, 9 - Transactions
 - **論文**: Saga（1987）
 
-### 71. Consensus Algorithm (Raft/Paxos)
+### 38. Consensus Algorithm (Raft/Paxos)
 - **難度**: 5 星
 - **時間**: 8-10 週
 - **核心概念**: 分布式共識、Leader Election、日誌複製
@@ -670,7 +670,7 @@
 - **DDIA**: Chapter 9 - Consistency and Consensus
 - **論文**: Raft（2014）、Paxos（1998）
 
-### 72. Time-Series Database
+### 39. Time-Series Database
 - **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 時序數據壓縮、聚合、查詢優化
@@ -685,7 +685,7 @@
   - Prometheus
 - **論文**: Gorilla（Facebook, 2015）
 
-### 73. Graph Database
+### 40. Graph Database
 - **難度**: 4 星
 - **時間**: 4-5 週
 - **核心概念**: 圖遍歷、社交網絡分析、最短路徑
